@@ -25,7 +25,7 @@ lint-frontend:
   image: node:20
   script:
     - cd frontend
-    - echo "TODO: add frontend linting + SonarQube scan"
+    - echo "TODO add frontend linting + SonarQube scan"
 
 test-frontend:
   stage: test
