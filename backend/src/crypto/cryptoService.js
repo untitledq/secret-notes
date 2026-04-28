@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 const ALGO = "aes-256-gcm";
 
-// Derive a 32-byte AES key from a user passphrase.
+// Derive a 32-byte AES key from passphrase.
 function deriveKey(passphrase) {
   return crypto.createHash("sha256").update(passphrase).digest();
 }
