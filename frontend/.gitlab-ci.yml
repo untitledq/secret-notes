@@ -1,0 +1,73 @@
+# GitLab CI/CD pipeline for Secret Notes (Frontend)
+
+# Required pipeline stages (per project specification):
+# 1. Linting
+# 2. Unit Testing
+# 3. Build (Docker image)
+# 4. Deliver (push to Docker Hub)
+# 5. Deploy (AWS + Blue/Green + E2E/Performance tests)
+
+stages:
+  - lint
+  - test
+  - build
+  - deliver
+  - deploy
+
+
+# 1. Linting Stage
+lint-frontend:
+  stage: lint
+  image: node:20
+  rules:
+    - changes:
+        - frontend/**
+  script:
+    - cd frontend
+    - echo "TODO: add frontend linting + SonarQube scan"
+
+
+# 2. Unit Testing Stage
+test-frontend:
+  stage: test
+  image: node:20
+  rules:
+    - changes:
+        - frontend/**
+  script:
+    - cd frontend
+    - echo "TODO: add frontend tests (Jest / Playwright)"
+
+
+# 3. Build Stage (Docker)
+build-frontend:
+  stage: build
+  image: docker:latest
+  rules:
+    - changes:
+        - frontend/**
+  services:
+    - docker:dind
+  script:
+    - docker build -t secret-notes-frontend ./frontend
+
+
+# 4. Deliver Stage (NOT ACTIVE YET)
+# deliver-frontend:
+#   stage: deliver
+#   rules:
+#     - changes:
+#         - frontend/**
+#   script:
+#     - docker login
+#     - docker push <your-dockerhub>/secret-notes-frontend
+
+
+# 5. Deploy Stage (NOT ACTIVE YET)
+# deploy-frontend:
+#   stage: deploy
+#   rules:
+#     - changes:
+#         - frontend/**
+#   script:
+#     - ansible-playbook infra/ansible/playbooks/deploy.yml
