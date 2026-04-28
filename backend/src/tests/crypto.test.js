@@ -1,4 +1,4 @@
-import { encrypt, decrypt } from "../src/crypto/cryptoService.js";
+import { encrypt, decrypt } from "../crypto/cryptoService.js";
 
 test("encrypt and decrypt roundtrip", () => {
   const key = "1234567890abcdef1234567890abcdef"; // 32 bytes hex
