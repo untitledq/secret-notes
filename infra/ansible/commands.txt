@@ -1,0 +1,7 @@
+ansible-playbook -i infra/ansible/inventory/hosts.ini infra/ansible/playbooks/install-docker.yml
+
+# copy aws-key to ~/.ssh – then:
+chmod 400 ~/.ssh/aws-key.pem
+
+# test if EC2 is reachable:
+ssh -i ~/.ssh/aws-key.pem ubuntu@EC2_PUBLIC_IP
