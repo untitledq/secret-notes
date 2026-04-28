@@ -1,0 +1,73 @@
+# GitLab CI/CD pipeline for Secret Notes
+
+# Required pipeline stages (per project specification):
+# 1. Linting
+# 2. Unit Testing
+# 3. Build (Docker image)
+# 4. Deliver (push to Docker Hub)
+# 5. Deploy (AWS + Blue/Green + E2E/Performance tests)
+
+stages:
+  - lint
+  - test
+  - build
+  - deliver
+  - deploy
+
+
+# 1. Linting Stage
+lint-backend:
+  stage: lint
+  image: node:20
+  script:
+    - cd backend
+    - npm install
+    - echo "TODO: add ESLint + SonarQube scan"
+  only:
+    - main
+    - deploy/production
+
+
+# 2. Unit Testing Stage
+test-backend:
+  stage: test
+  image: node:20
+  script:
+    - cd backend
+    - npm install
+    - npm test
+  only:
+    - main
+    - deploy/production
+
+
+# 3. Build Stage (Docker)
+build-backend:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t secret-notes-backend ./backend
+  only:
+    - main
+    - deploy/production
+
+
+# 4. Deliver Stage (NOT ACTIVE YET)
+# deliver-backend:
+#   stage: deliver
+#   script:
+#     - docker login
+#     - docker push <your-dockerhub>/secret-notes-backend
+#   only:
+#     - deploy/production
+
+
+# 5. Deploy Stage (NOT ACTIVE YET)
+# deploy-backend:
+#   stage: deploy
+#   script:
+#     - ansible-playbook infra/ansible/playbooks/deploy.yml
+#   only:
+#     - deploy/production
