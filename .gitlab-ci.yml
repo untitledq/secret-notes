@@ -1,3 +1,123 @@
-include:
-  - local: 'backend/.gitlab-ci.yml'
-  - local: 'frontend/.gitlab-ci.yml'
+
+# GitLab CI/CD pipeline for Secret Notes
+
+# Required pipeline stages:
+# 1. Linting
+# 2. Unit Testing
+# 3. Build (Docker image)
+# 4. Deliver (push to Docker Hub)
+# 5. Deploy (AWS + Blue/Green + E2E/Performance tests)
+
+stages:
+  - lint
+  - test
+  - build
+  - deliver
+  - deploy
+
+# =====================================================
+# BACKEND
+# =====================================================
+
+lint-backend:
+  stage: lint
+  image: node:20
+  rules:
+    - changes:
+        - backend/**
+  script:
+    - cd backend
+    - npm install
+    - echo "TODO ESLint + SonarQube scan"
+
+test-backend:
+  stage: test
+  image: node:20
+  rules:
+    - changes:
+        - backend/**
+  script:
+    - cd backend
+    - npm install
+    - npm test
+
+build-backend:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  rules:
+    - changes:
+        - backend/**
+  script:
+    - docker build -t secret-notes-backend ./backend
+
+# deliver-backend:
+#   stage: deliver
+#   rules:
+#     - changes:
+#         - backend/**
+#   script:
+#     - docker login
+#     - docker push <your-dockerhub>/secret-notes-backend
+
+# deploy-backend:
+#   stage: deploy
+#   rules:
+#     - changes:
+#         - backend/**
+#   script:
+#     - ansible-playbook infra/ansible/playbooks/deploy.yml
+
+
+# =====================================================
+# FRONTEND
+# =====================================================
+
+lint-frontend:
+  stage: lint
+  image: node:20
+  rules:
+    - changes:
+        - frontend/**
+  script:
+    - cd frontend
+    - echo "TODO frontend lint + SonarQube scan"
+
+test-frontend:
+  stage: test
+  image: node:20
+  rules:
+    - changes:
+        - frontend/**
+  script:
+    - cd frontend
+    - echo "TODO frontend tests (Jest / Playwright)"
+
+build-frontend:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  rules:
+    - changes:
+        - frontend/**
+  script:
+    - docker build -t secret-notes-frontend ./frontend
+
+# deliver-frontend:
+#   stage: deliver
+#   rules:
+#     - changes:
+#         - frontend/**
+#   script:
+#     - docker login
+#     - docker push <your-dockerhub>/secret-notes-frontend
+
+# deploy-frontend:
+#   stage: deploy
+#   rules:
+#     - changes:
+#         - frontend/**
+#   script:
+#     - ansible-playbook infra/ansible/playbooks/deploy.yml
