@@ -2,9 +2,19 @@ import crypto from "crypto";
 
 const ALGO = "aes-256-gcm";
 
-export function encrypt(text, key) {
+// Derive a 32-byte AES key from a user passphrase.
+function deriveKey(passphrase) {
+  return crypto.createHash("sha256").update(passphrase).digest();
+}
+
+export function encrypt(text, passphrase) {
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv(ALGO, Buffer.from(key, "hex"), iv);
+
+  const cipher = crypto.createCipheriv(
+      ALGO,
+      deriveKey(passphrase),
+      iv
+  );
 
   let encrypted = cipher.update(text, "utf8", "hex");
   encrypted += cipher.final("hex");
@@ -18,11 +28,11 @@ export function encrypt(text, key) {
   };
 }
 
-export function decrypt(data, key) {
+export function decrypt(data, passphrase) {
   const decipher = crypto.createDecipheriv(
-    ALGO,
-    Buffer.from(key, "hex"),
-    Buffer.from(data.iv, "hex")
+      ALGO,
+      deriveKey(passphrase),
+      Buffer.from(data.iv, "hex")
   );
 
   decipher.setAuthTag(Buffer.from(data.tag, "hex"));
