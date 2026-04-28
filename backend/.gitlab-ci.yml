@@ -26,7 +26,7 @@ lint-backend:
   script:
     - cd backend
     - npm install
-    - echo "TODO: add ESLint + SonarQube scan"
+    - echo "TODO add ESLint + SonarQube scan"
 
 
 # 2. Unit Testing Stage
