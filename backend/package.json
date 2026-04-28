@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node src/server.js",
-    "test": "jest"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "dependencies": {
     "fastify": "^4.0.0"
