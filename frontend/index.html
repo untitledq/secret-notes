@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Secret Notes</title>
+</head>
+<body>
+  <h1>Secret Notes</h1>
+
+  <textarea id="note"></textarea><br>
+  <input id="key" placeholder="encryption key" /><br>
+  <button onclick="send()">Save</button>
+
+  <script>
+    async function send() {
+      const note = document.getElementById("note").value;
+      const key = document.getElementById("key").value;
+
+      console.log("TODO: send to backend", { note, key });
+    }
+  </script>
+</body>
+</html>
