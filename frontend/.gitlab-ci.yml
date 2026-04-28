@@ -22,6 +22,7 @@ lint-frontend:
   rules:
     - changes:
         - frontend/**
+    - when: never
   script:
     - cd frontend
     - echo "TODO: add frontend linting + SonarQube scan"
@@ -34,6 +35,7 @@ test-frontend:
   rules:
     - changes:
         - frontend/**
+    - when: never
   script:
     - cd frontend
     - echo "TODO: add frontend tests (Jest / Playwright)"
@@ -46,6 +48,7 @@ build-frontend:
   rules:
     - changes:
         - frontend/**
+    - when: never
   services:
     - docker:dind
   script:
@@ -58,6 +61,7 @@ build-frontend:
 #   rules:
 #     - changes:
 #         - frontend/**
+#     - when: never
 #   script:
 #     - docker login
 #     - docker push <your-dockerhub>/secret-notes-frontend
@@ -69,5 +73,6 @@ build-frontend:
 #   rules:
 #     - changes:
 #         - frontend/**
+#     - when: never
 #   script:
 #     - ansible-playbook infra/ansible/playbooks/deploy.yml
