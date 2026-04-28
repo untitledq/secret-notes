@@ -7,6 +7,12 @@
 # 4. Deliver (push to Docker Hub)
 # 5. Deploy (AWS + Blue/Green + E2E/Performance tests)
 
+workflow:
+  rules:
+    - changes:
+        - backend/**
+    - when: never
+
 stages:
   - lint
   - test
@@ -14,67 +20,37 @@ stages:
   - deliver
   - deploy
 
-
-# 1. Linting Stage
 lint-backend:
   stage: lint
   image: node:20
-  rules:
-    - changes:
-        - backend/**
-    - when: never
   script:
     - cd backend
     - npm install
     - echo "TODO add ESLint + SonarQube scan"
 
-
-# 2. Unit Testing Stage
 test-backend:
   stage: test
   image: node:20
-  rules:
-    - changes:
-        - backend/**
-    - when: never
   script:
     - cd backend
     - npm install
     - npm test
 
-
-# 3. Build Stage (Docker)
 build-backend:
   stage: build
   image: docker:latest
-  rules:
-    - changes:
-        - backend/**
-    - when: never
   services:
     - docker:dind
   script:
     - docker build -t secret-notes-backend ./backend
 
-
-# 4. Deliver Stage (NOT ACTIVE YET)
 # deliver-backend:
 #   stage: deliver
-#   rules:
-#     - changes:
-#         - backend/**
-#     - when: never
 #   script:
 #     - docker login
 #     - docker push <your-dockerhub>/secret-notes-backend
 
-
-# 5. Deploy Stage (NOT ACTIVE YET)
 # deploy-backend:
 #   stage: deploy
-#   rules:
-#     - changes:
-#         - backend/**
-#     - when: never
 #   script:
 #     - ansible-playbook infra/ansible/playbooks/deploy.yml
