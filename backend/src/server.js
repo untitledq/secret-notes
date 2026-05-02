@@ -1,9 +1,19 @@
 import Fastify from "fastify";
+import rateLimit from "@fastify/rate-limit";
 import { prisma } from "./db/prismaClient.js";
 import { encrypt, decrypt } from "./crypto/cryptoService.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
+
+  // register global plugins first
+  app.register(rateLimit, {
+    max: 10,
+    timeWindow: "1 minute",
+    errorResponseBuilder: () => ({
+      error: "Too many requests",
+    }),
+  });
 
   // Ensure DB connection lifecycle is handled
   app.addHook("onClose", async () => {
