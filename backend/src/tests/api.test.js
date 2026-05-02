@@ -1,6 +1,6 @@
 import request from "supertest";
 import { buildApp } from "../server.js";
-import { prisma } from "./prismaClient.js";
+import { prisma } from "../db/prismaClient.js";
 
 let app;
 

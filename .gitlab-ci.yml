@@ -28,7 +28,8 @@ lint-backend:
   script:
     - cd backend
     - npm install
-    - echo "TODO ESLint + SonarQube scan"
+    - npx eslint .
+    - echo "TODO SonarQube scan"
 
 test-backend:
   stage: test
