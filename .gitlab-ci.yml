@@ -51,6 +51,7 @@ test-backend:
     - until pg_isready -h postgres -U secret; do sleep 1; done
     - npx prisma generate
     - npx prisma migrate deploy
+    - npx prisma db pull
     - npm test
 
 build-backend:

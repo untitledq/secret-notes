@@ -15,8 +15,8 @@ datasource db {
 
 model note {
   id        Int      @id @default(autoincrement())
-  content   String
-  iv        String
-  tag       String
+  content   String   @db.Text
+  iv        String   @db.VarChar(24)
+  tag       String   @db.VarChar(32)
   createdAt DateTime @default(now())
 }
