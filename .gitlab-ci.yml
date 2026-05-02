@@ -29,7 +29,6 @@ lint-backend:
     - cd backend
     - npm install
     - npx eslint .
-    - echo "TODO SonarQube scan"
 
 test-backend:
   stage: test
@@ -54,6 +53,8 @@ test-backend:
     - npx prisma migrate deploy
     - npx prisma db pull
     - npm test
+    - echo "TODO SonarQube scan"
+    - echo "TODO Snyk test"
 
 build-backend:
   stage: build
@@ -64,7 +65,9 @@ build-backend:
     - changes:
         - backend/**
   script:
-    - docker build -t secret-notes-backend ./backend
+    - docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY" <<< "$CI_REGISTRY_PASSWORD"
+    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA ./backend
+    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
 
 # deliver-backend:
 #   stage: deliver
