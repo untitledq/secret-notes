@@ -1,1 +1,21 @@
 services:
+  database:
+    image: postgres:17.4-alpine3.21
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_sec_notes_data:/var/lib/postgresql/data
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+volumes:
+  postgres_sec_notes_data:
+
+variables:
+  POSTGRES_DB: secret_notes
+  POSTGRES_USER: secret
+  POSTGRES_PASSWORD: secret
+  DATABASE_URL: postgresql://secret:secret@postgres:5432/secret_notes
