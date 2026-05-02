@@ -7,7 +7,10 @@ export default defineConfig([
   {
     files: ["**/*.js"],
     languageOptions: {
-      globals: globals.node,
+      globals: {
+        ...globals.node,
+        ...globals.jest
+      },
     },
     rules: {
       "no-unused-vars": "error",
