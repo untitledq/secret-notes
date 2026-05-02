@@ -1,10 +1,9 @@
 import Fastify from "fastify";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./db/prismaClient.js";
 import { encrypt, decrypt } from "./crypto/cryptoService.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
-  const prisma = new PrismaClient();
 
   // Ensure DB connection lifecycle is handled
   app.addHook("onClose", async () => {
