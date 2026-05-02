@@ -51,8 +51,8 @@ export function buildApp() {
         id: note.id,
         message: "Note stored securely",
       };
-    } catch (err) {
-      request.log.error(err);
+    } catch (error) {
+      request.log.error({ error }, "POST /notes failed");
       return reply.status(500).send({ error: "Internal server error" });
     }
   });
