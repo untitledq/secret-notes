@@ -4,13 +4,16 @@ import { prisma } from "./db/prismaClient.js";
 import { encrypt, decrypt } from "./crypto/cryptoService.js";
 
 export function buildApp() {
-  const app = Fastify({ logger: true });
+  const app = Fastify({
+    logger: true,
+    trustProxy: true
+  });
 
   // register global plugins first
   app.register(rateLimit, {
     max: 5,
     timeWindow: "1 minute",
-    allowList: [], // optional
+    allowList: [],
     errorResponseBuilder: () => ({
       error: "Too many requests",
     }),
