@@ -1,8 +1,7 @@
 import request from "supertest";
 import { buildApp } from "../server.js";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./prismaClient.js";
 
-const prisma = new PrismaClient();
 let app;
 
 beforeAll(async () => {
