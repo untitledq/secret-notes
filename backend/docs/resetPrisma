@@ -3,5 +3,3 @@ docker compose -f local-compose.yml up -d
 rm -rf prisma/migrations
 npx dotenv -e .env.local -- npx prisma migrate dev --name init
 npx prisma generate
-
-npx dotenv -e .env.local -- npm test
