@@ -1,0 +1,156 @@
+openapi: 3.0.3
+info:
+  title: Secret Notes API
+  version: 1.0.0
+  description: API for storing and retrieving encrypted notes
+
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /notes:
+    post:
+      summary: Store an encrypted note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+                - passphrase
+              properties:
+                text:
+                  type: string
+                  maxLength: 10000
+                  example: My secret note
+                passphrase:
+                  type: string
+                  maxLength: 1000
+                  example: strong-password
+      responses:
+        '200':
+          description: Note stored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  message:
+                    type: string
+                    example: Note stored securely
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidTypes:
+                  value: { error: "Invalid input types" }
+                emptyFields:
+                  value: { error: "Empty text or passphrase" }
+        '413':
+          description: Payload too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                textTooLarge:
+                  value: { error: "Text too large" }
+                passphraseTooLarge:
+                  value: { error: "Passphrase too large" }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notes/{id}:
+    get:
+      summary: Retrieve and decrypt a note
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Numeric ID of the note
+        - name: passphrase
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Passphrase used for decryption
+      responses:
+        '200':
+          description: Decrypted note
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  content:
+                    type: string
+                    example: My secret note
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidId:
+                  value: { error: "Invalid id" }
+                missingPassphrase:
+                  value: { error: "Missing passphrase" }
+        '403':
+          description: Invalid passphrase or corrupted data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid key or corrupted data
+        '404':
+          description: Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Note not found
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
