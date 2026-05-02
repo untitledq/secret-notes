@@ -89,7 +89,8 @@ export function buildApp() {
       );
 
       return { id: note.id, content: decrypted };
-    } catch (err) {
+    } catch (error) {
+      request.log.warn({ error }, "GET /notes/:id failed decryption");
       return reply.status(403).send({ error: "Invalid key or corrupted data" });
     }
   });
