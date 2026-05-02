@@ -39,6 +39,7 @@ test-backend:
   script:
     - cd backend
     - npm install
+    - npx prisma generate
     - npm test
 
 build-backend:

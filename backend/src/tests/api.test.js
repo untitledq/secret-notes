@@ -12,7 +12,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await prisma.$disconnect();
-    await app.close();
+    await new Promise(resolve => setTimeout(resolve, 200));
 });
 
 test("create and retrieve note", async () => {

@@ -1,3 +1,5 @@
+import { encrypt, decrypt } from "../crypto/cryptoService.js";
+
 test("tampered ciphertext fails", () => {
     const encrypted = encrypt("hello", "pw");
     encrypted.content = encrypted.content.slice(0, -2) + "ff";
