@@ -64,9 +64,12 @@ build-backend:
     - changes:
         - backend/**
   script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA ./backend
+    - docker build -t secret-notes-backend ./backend
+
+#    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+#    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA ./backend
 #    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+
 
 # deliver-backend:
 #   stage: deliver
