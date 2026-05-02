@@ -6,10 +6,23 @@ import { encrypt, decrypt } from "./crypto/cryptoService.js";
 export function buildApp() {
   const app = Fastify({
     logger: true,
-    trustProxy: true
+    trustProxy: true,
   });
 
-  // register global plugins first
+  app.setErrorHandler((error, request, reply) => {
+    if (error.validation) {
+      return reply.status(400).send({
+        error: "Invalid id",
+      });
+    }
+
+    request.log.error(error);
+    return reply.status(500).send({
+      error: "Internal server error",
+    });
+  });
+
+  // global plugins
   app.register(rateLimit, {
     max: 5,
     timeWindow: "1 minute",
@@ -19,7 +32,6 @@ export function buildApp() {
     }),
   });
 
-  // Ensure DB connection lifecycle is handled
   app.addHook("onClose", async () => {
     await prisma.$disconnect();
   });
@@ -31,7 +43,6 @@ export function buildApp() {
   app.post("/notes", async (request, reply) => {
     const { text, passphrase } = request.body || {};
 
-    // Basic validation (Suggestion #4)
     if (typeof text !== "string" || typeof passphrase !== "string") {
       return reply.status(400).send({ error: "Invalid input types" });
     }
@@ -40,7 +51,6 @@ export function buildApp() {
       return reply.status(400).send({ error: "Empty text or passphrase" });
     }
 
-    // Optional size limits (protect DB / abuse)
     if (text.length > 10_000) {
       return reply.status(413).send({ error: "Text too large" });
     }
@@ -70,44 +80,59 @@ export function buildApp() {
     }
   });
 
-  app.get("/notes/:id", async (request, reply) => {
-    const { id } = request.params;
-    const { passphrase } = request.query || {};
-
-    // Validation
-    const numericId = Number(id);
-    if (!Number.isInteger(numericId)) {
-      return reply.status(400).send({ error: "Invalid id" });
-    }
-
-    if (typeof passphrase !== "string" || !passphrase.trim()) {
-      return reply.status(400).send({ error: "Missing passphrase" });
-    }
-
-    try {
-      const note = await prisma.note.findUnique({
-        where: { id: numericId },
-      });
-
-      if (!note) {
-        return reply.status(404).send({ error: "Note not found" });
-      }
-
-      const decrypted = decrypt(
-          {
-            content: note.content,
-            iv: note.iv,
-            tag: note.tag,
+  app.get(
+      "/notes/:id",
+      {
+        schema: {
+          params: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: { type: "integer" },
+            },
           },
-          passphrase
-      );
+          querystring: {
+            type: "object",
+            required: ["passphrase"],
+            properties: {
+              passphrase: { type: "string" },
+            },
+          },
+        },
+      },
+      async (request, reply) => {
+        const { id } = request.params;
+        const { passphrase } = request.query;
 
-      return { id: note.id, content: decrypted };
-    } catch (error) {
-      request.log.warn({ error }, "GET /notes/:id failed decryption");
-      return reply.status(403).send({ error: "Invalid key or corrupted data" });
-    }
-  });
+        if (!passphrase || !passphrase.trim()) {
+          return reply.status(400).send({ error: "Missing passphrase" });
+        }
+
+        try {
+          const note = await prisma.note.findUnique({
+            where: { id },
+          });
+
+          if (!note) {
+            return reply.status(404).send({ error: "Note not found" });
+          }
+
+          const decrypted = decrypt(
+              {
+                content: note.content,
+                iv: note.iv,
+                tag: note.tag,
+              },
+              passphrase
+          );
+
+          return { id: note.id, content: decrypted };
+        } catch (error) {
+          request.log.warn({ error }, "GET /notes/:id failed decryption");
+          return reply.status(403).send({ error: "Invalid key or corrupted data" });
+        }
+      }
+  );
 
   return app;
 }
