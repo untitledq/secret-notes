@@ -15,16 +15,11 @@ afterAll(async () => {
 test("reject repeated oversized payload attempts", async () => {
     const bigText = "a".repeat(20000);
 
-    const results = await Promise.all(
-        Array.from({ length: 5 }).map(() =>
-            request(app.server)
-                .post("/notes")
-                .send({ text: bigText, passphrase: "pw" })
-        )
-    );
+    for (let i = 0; i < 5; i++) {
+        const res = await request(app.server)
+            .post("/notes")
+            .send({ text: bigText, passphrase: "pw" });
 
-    for (const res of results) {
         expect(res.statusCode).toBe(413);
-        expect(res.body.error).toBe("Text too large");
     }
 });

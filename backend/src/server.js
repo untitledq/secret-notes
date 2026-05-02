@@ -8,8 +8,9 @@ export function buildApp() {
 
   // register global plugins first
   app.register(rateLimit, {
-    max: 10,
+    max: 5,
     timeWindow: "1 minute",
+    allowList: [], // optional
     errorResponseBuilder: () => ({
       error: "Too many requests",
     }),
