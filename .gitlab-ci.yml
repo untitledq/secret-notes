@@ -21,9 +21,6 @@ stages:
 lint-backend:
   stage: lint
   image: node:20
-  rules:
-    - changes:
-        - backend/**
   script:
     - cd backend
     - npm install
@@ -32,9 +29,6 @@ lint-backend:
 test-backend:
   stage: test
   image: node:20
-  rules:
-    - changes:
-        - backend/**
   services:
     - name: postgres:17.4-alpine3.21
       alias: postgres
@@ -60,9 +54,6 @@ build-backend:
   image: docker:latest
   services:
     - docker:dind
-  rules:
-    - changes:
-        - backend/**
   script:
     - docker build -t secret-notes-backend ./backend
 
@@ -73,18 +64,12 @@ build-backend:
 
 # deliver-backend:
 #   stage: deliver
-#   rules:
-#     - changes:
-#         - backend/**
 #   script:
 #     - docker login
 #     - docker push <your-dockerhub>/secret-notes-backend
 
 # deploy-backend:
 #   stage: deploy
-#   rules:
-#     - changes:
-#         - backend/**
 #   script:
 #     - ansible-playbook infra/ansible/playbooks/deploy.yml
 
@@ -96,9 +81,6 @@ build-backend:
 lint-frontend:
   stage: lint
   image: node:20
-  rules:
-    - changes:
-        - frontend/**
   script:
     - cd frontend
     - echo "TODO frontend lint + SonarQube scan"
@@ -106,9 +88,6 @@ lint-frontend:
 test-frontend:
   stage: test
   image: node:20
-  rules:
-    - changes:
-        - frontend/**
   script:
     - cd frontend
     - echo "TODO frontend tests (Jest / Playwright)"
@@ -118,25 +97,16 @@ build-frontend:
   image: docker:latest
   services:
     - docker:dind
-  rules:
-    - changes:
-        - frontend/**
   script:
     - docker build -t secret-notes-frontend ./frontend
 
 # deliver-frontend:
 #   stage: deliver
-#   rules:
-#     - changes:
-#         - frontend/**
 #   script:
 #     - docker login
 #     - docker push <your-dockerhub>/secret-notes-frontend
 
 # deploy-frontend:
 #   stage: deploy
-#   rules:
-#     - changes:
-#         - frontend/**
 #   script:
 #     - ansible-playbook infra/ansible/playbooks/deploy.yml
