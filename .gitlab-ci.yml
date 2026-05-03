@@ -21,6 +21,8 @@ stages:
 lint-backend:
   stage: lint
   image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
   script:
     - cd backend
     - npm install
@@ -29,6 +31,8 @@ lint-backend:
 test-backend:
   stage: test
   image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
   services:
     - name: postgres:17.4-alpine3.21
       alias: postgres
@@ -51,24 +55,29 @@ test-backend:
 build-backend:
   stage: build
   image: docker:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
   services:
     - docker:dind
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA ./backend
+    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/backend:latest ./backend
     - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
-
-#    - docker build -t secret-notes-backend ./backend
+    - docker push $CI_REGISTRY_IMAGE/backend:latest
 
 
 # deliver-backend:
 #   stage: deliver
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main"'
 #   script:
 #     - docker login
 #     - docker push <your-dockerhub>/secret-notes-backend
 
 # deploy-backend:
 #   stage: deploy
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main"'
 #   script:
 #     - ansible-playbook infra/ansible/playbooks/deploy.yml
 
@@ -80,6 +89,8 @@ build-backend:
 lint-frontend:
   stage: lint
   image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
   script:
     - cd frontend
     # basic HTML validation using tidy (lightweight, no Node project needed)
@@ -90,6 +101,8 @@ lint-frontend:
 test-frontend:
   stage: test
   image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
   script:
     - cd frontend
     # basic smoke check: file exists and is non-empty
@@ -99,20 +112,28 @@ test-frontend:
 build-frontend:
   stage: build
   image: docker:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
   services:
     - docker:dind
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA ./frontend
+    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/frontend:latest ./frontend
     - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/frontend:latest
+
 
 # deliver-frontend:
 #   stage: deliver
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main"'
 #   script:
 #     - docker login
 #     - docker push <your-dockerhub>/secret-notes-frontend
 
 # deploy-frontend:
 #   stage: deploy
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main"'
 #   script:
 #     - ansible-playbook infra/ansible/playbooks/deploy.yml

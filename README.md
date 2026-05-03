@@ -6,33 +6,34 @@ To prevent over-use of shared runner, small modifications will be done in branch
 
 ## Project Status
 
-| Area                            | Backend |
-|---------------------------------|---|
-| **API-Implementation**          | ✅|
-| **Crypto**                      | ✅|
-| **DB/Prisma**                   | ✅|
-| **Tests local (13 passing)**    | ✅|
-| **Frontend**                    | ⏳ |
-| **PostHog Integration**         | ❌ |
-| **Documentation (FHTW template)**         | ❌ |
+| Area                  | Backend |
+|-----------------------|---|
+| **API-Implementation** | ✅|
+| **Crypto**            | ✅|
+| **DB/Prisma**         | ✅|
+| **Tests local (13 passing)** | ✅|
+| **Frontend (basic)**  | ✅|
+| **Code improvements** | ⏳ |
+| **PostHog Integration** | ❌ |
+| **Documentation (FHTW template)** | ❌ |
 
 ---
 
 ### Cloud-hosted Pipeline (GitLab CI SaaS)
 
-| Stage                       | Backend | Frontend |
-|-----------------------------|------|---------|
-| Lint                        | ✅ | ⏳       |
-|                             | |         |
-| Test                        | ✅ | ⏳       |
-| SonarQube                   | ⭕ |         |
-| Snyk                        | ⭕ |         |
-|                             | |         |
-| Build (GitLab Regestry)     | ✅ | ✅       |
-|                             | |         |
-| Deliver (DockerHub)         | ⭕ | ⭕       |
-|                             | |         |
-| Blue/Green Deployment (AWS) | ❌ | ❌       |
+| Stage                       | Backend | Frontend         |
+|-----------------------------|------|------------------|
+| Lint                        | ✅ | ⏳ (non-blocking) |
+|                             | |                  |
+| Test                        | ✅ | ⏳ (exists and is non-empty) |
+| SonarQube                   | ⭕ |                  |
+| Snyk                        | ⭕ |                  |
+|                             | |                  |
+| Build (GitLab Regestry)     | ✅ | ✅                |
+|                             | |                  |
+| Deliver (DockerHub)         | ⭕ | ⭕                |
+|                             | |                  |
+| Blue/Green Deployment (AWS) | ❌ | ❌                |
 
 ---
 
