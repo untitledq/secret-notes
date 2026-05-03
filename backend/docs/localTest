@@ -1,1 +1,3 @@
+docker compose -f local-compose.yml up -d
 npx dotenv -e .env.local -- npm test
+docker compose -f local-compose.yml down

@@ -14,6 +14,7 @@ To prevent over-use of shared runner, small modifications will be done in branch
 | **Tests local (13 passing)**    | ✅|
 | **Frontend**                    | ⏳ |
 | **PostHog Integration**         | ❌ |
+| **Documentation (FHTW template)**         | ❌ |
 
 ---
 
