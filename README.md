@@ -20,18 +20,18 @@ To prevent over-use of shared runner, small modifications will be done in branch
 ### Cloud-hosted Pipeline (GitLab CI SaaS)
 
 | Stage                       | Backend | Frontend |
-|-----------------------------|------|--|
-| Lint                        | ✅ | ⏳ |
-|                             | | |
-| Test                        | ✅ | ⏳ |
-| SonarQube                   | ⭕ |  |
-| Snyk                        | ⭕ |  |
-|                             | | |
-| Build (GitLab Regestry)     | ✅ | ✅ |
-|                             | | |
-| Deliver (DockerHub)         | ⭕ | ⭕ |
-|                             | | |
-| Blue/Green Deployment (AWS) | ❌ | ❌ |
+|-----------------------------|------|---------|
+| Lint                        | ✅ | ⏳       |
+|                             | |         |
+| Test                        | ✅ | ⏳       |
+| SonarQube                   | ⭕ |         |
+| Snyk                        | ⭕ |         |
+|                             | |         |
+| Build (GitLab Regestry)     | ✅ | ✅       |
+|                             | |         |
+| Deliver (DockerHub)         | ⭕ | ⭕       |
+|                             | |         |
+| Blue/Green Deployment (AWS) | ❌ | ❌       |
 
 ---
 

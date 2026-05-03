@@ -20,7 +20,7 @@ h1 {
 }
 
 textarea {
-    width: 100%;
+    width: 96%;
     height: 120px;
     margin-bottom: 10px;
     padding: 8px;
@@ -30,7 +30,7 @@ textarea {
 }
 
 input {
-    width: 100%;
+    width: 96%;
     margin-bottom: 10px;
     padding: 8px;
     border-radius: 4px;
