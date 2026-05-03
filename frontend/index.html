@@ -1,22 +1,78 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Secret Notes</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<div class="container">
   <h1>Secret Notes</h1>
 
-  <textarea id="note"></textarea><br>
-  <input id="key" placeholder="encryption key" /><br>
-  <button onclick="send()">Save</button>
+  <!-- label explicitly associated via for/id -->
+  <label for="note">Note</label>
+  <textarea id="note" placeholder="Enter your secret note"></textarea>
 
-  <script>
-    async function send() {
-      const note = document.getElementById("note").value;
-      const key = document.getElementById("key").value;
+  <label for="key">Encryption key</label>
+  <input id="key" type="password" placeholder="Encryption key" />
 
-      console.log("TODO: send to backend", { note, key });
+  <div class="actions">
+    <button onclick="saveNote()">Save</button>
+    <button onclick="loadNote()">Load</button>
+  </div>
+
+  <label for="noteId">Note ID</label>
+  <input id="noteId" placeholder="Note ID (for retrieval)" />
+
+  <!-- role="status" improves accessibility for dynamic updates -->
+  <pre id="output" role="status" aria-live="polite"></pre>
+</div>
+
+<script>
+  const API_BASE = "http://localhost:3000";
+
+  async function saveNote() {
+    const text = document.getElementById("note").value;
+    const passphrase = document.getElementById("key").value;
+
+    const res = await fetch(`${API_BASE}/notes`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ text, passphrase })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showOutput(data.error || "Request failed");
+      return;
     }
-  </script>
+
+    showOutput(`Stored. ID = ${data.id}`);
+    document.getElementById("noteId").value = data.id;
+  }
+
+  async function loadNote() {
+    const id = document.getElementById("noteId").value;
+    const passphrase = document.getElementById("key").value;
+
+    const res = await fetch(`${API_BASE}/notes/${id}?passphrase=${encodeURIComponent(passphrase)}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      showOutput(data.error || "Request failed");
+      return;
+    }
+
+    document.getElementById("note").value = data.content;
+    showOutput("Note loaded successfully");
+  }
+
+  function showOutput(msg) {
+    document.getElementById("output").textContent = msg;
+  }
+</script>
 </body>
 </html>

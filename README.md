@@ -5,10 +5,9 @@
 | **API-Implementation**          | ✅|
 | **Crypto**                      | ✅|
 | **DB/Prisma**                   | ✅|
-| **Tests local (10+)**           | ✅|
-| **Frontend**                    | ⭕ |
+| **Tests local (13 passing)**    | ✅|
+| **Frontend**                    | ⏳ |
 | **PostHog Integration**         | ❌ |
-| **Blue/Green Deployment (AWS)** | ❌ |
 
 ---
 
@@ -26,7 +25,7 @@
 | | | |
 | Deliver (DockerHub) | ⏳ | ❌ |
 | | | |
-| Deploy (AWS) | ❌ | ❌ |
+| Blue/Green Deployment (AWS) | ❌ | ❌ |
 
 ---
 

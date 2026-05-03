@@ -44,7 +44,6 @@ test-backend:
     - until pg_isready -h postgres -U secret; do sleep 1; done
     - npx prisma generate
     - npx prisma migrate deploy
-    - npx prisma db pull
     - npm test
     - echo "TODO SonarQube scan"
     - echo "TODO Snyk test"
@@ -55,11 +54,11 @@ build-backend:
   services:
     - docker:dind
   script:
-    - docker build -t secret-notes-backend ./backend
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA ./backend
+    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
 
-#    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-#    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA ./backend
-#    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+#    - docker build -t secret-notes-backend ./backend
 
 
 # deliver-backend:
@@ -83,14 +82,19 @@ lint-frontend:
   image: node:20
   script:
     - cd frontend
-    - echo "TODO frontend lint + SonarQube scan"
+    # basic HTML validation using tidy (lightweight, no Node project needed)
+    - apt-get update && apt-get install -y tidy
+    # intentionally weak / nonblocking for now
+    - tidy -q -e index.html || true
 
 test-frontend:
   stage: test
   image: node:20
   script:
     - cd frontend
-    - echo "TODO frontend tests (Jest / Playwright)"
+    # basic smoke check: file exists and is non-empty
+    - test -s index.html
+    - echo "Frontend smoke test passed"
 
 build-frontend:
   stage: build
@@ -98,7 +102,9 @@ build-frontend:
   services:
     - docker:dind
   script:
-    - docker build -t secret-notes-frontend ./frontend
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA ./frontend
+    - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
 
 # deliver-frontend:
 #   stage: deliver
