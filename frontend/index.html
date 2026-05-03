@@ -9,7 +9,6 @@
 <div class="container">
   <h1>Secret Notes</h1>
 
-  <!-- label explicitly associated via for/id -->
   <label for="note">Note</label>
   <textarea id="note" placeholder="Enter your secret note"></textarea>
 
@@ -24,54 +23,89 @@
   <label for="noteId">Note ID</label>
   <input id="noteId" placeholder="Note ID (for retrieval)" />
 
-  <!-- role="status" improves accessibility for dynamic updates -->
   <pre id="output" role="status" aria-live="polite"></pre>
 </div>
 
 <script>
   const API_BASE = "http://localhost:3000";
 
+  // --- health check on startup ---
+  window.addEventListener("DOMContentLoaded", async () => {
+    try {
+      const res = await fetch(`${API_BASE}/health`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        showOutput(`Health check failed: ${data.error || res.status}`);
+        return;
+      }
+
+      showOutput(`Backend OK: ${data.status}`);
+    } catch (err) {
+      showOutput("Backend unreachable (network error)");
+    }
+  });
+
   async function saveNote() {
     const text = document.getElementById("note").value;
     const passphrase = document.getElementById("key").value;
 
-    const res = await fetch(`${API_BASE}/notes`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ text, passphrase })
-    });
+    try {
+      const res = await fetch(`${API_BASE}/notes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ text, passphrase })
+      });
 
-    const data = await res.json();
+      const data = await safeJson(res);
 
-    if (!res.ok) {
-      showOutput(data.error || "Request failed");
-      return;
+      if (!res.ok) {
+        showOutput(data?.error || `Request failed (${res.status})`);
+        return;
+      }
+
+      showOutput(`Stored. ID = ${data.id}`);
+      document.getElementById("noteId").value = data.id;
+    } catch (err) {
+      showOutput("Network error while saving");
     }
-
-    showOutput(`Stored. ID = ${data.id}`);
-    document.getElementById("noteId").value = data.id;
   }
 
   async function loadNote() {
     const id = document.getElementById("noteId").value;
     const passphrase = document.getElementById("key").value;
 
-    const res = await fetch(`${API_BASE}/notes/${id}?passphrase=${encodeURIComponent(passphrase)}`);
-    const data = await res.json();
+    try {
+      const res = await fetch(
+              `${API_BASE}/notes/${id}?passphrase=${encodeURIComponent(passphrase)}`
+      );
 
-    if (!res.ok) {
-      showOutput(data.error || "Request failed");
-      return;
+      const data = await safeJson(res);
+
+      if (!res.ok) {
+        showOutput(data?.error || `Request failed (${res.status})`);
+        return;
+      }
+
+      document.getElementById("note").value = data.content;
+      showOutput("Note loaded successfully");
+    } catch (err) {
+      showOutput("Network error while loading");
     }
-
-    document.getElementById("note").value = data.content;
-    showOutput("Note loaded successfully");
   }
 
   function showOutput(msg) {
     document.getElementById("output").textContent = msg;
+  }
+
+  async function safeJson(res) {
+    try {
+      return await res.json();
+    } catch {
+      return null;
+    }
   }
 </script>
 </body>

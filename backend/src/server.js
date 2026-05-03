@@ -1,5 +1,6 @@
 import Fastify from "fastify"; // Fastify web framework instance
 import rateLimit from "@fastify/rate-limit"; // Request rate limiting plugin
+import cors from "@fastify/cors";
 import { prisma } from "./db/prismaClient.js"; // Prisma database client
 import { encrypt, decrypt } from "./crypto/cryptoService.js"; // AES-GCM encryption utilities
 
@@ -7,6 +8,10 @@ export function buildApp() { // Factory function to create configured Fastify ap
   const app = Fastify({ // Create Fastify instance with base config
     logger: true, // Enable request/response logging
     trustProxy: true, // Required for correct IP handling behind proxies
+  });
+
+  app.register(cors, {
+    origin: true
   });
 
   app.setErrorHandler((error, request, reply) => { // Global error handler (overrides default Fastify errors)
@@ -21,7 +26,7 @@ export function buildApp() { // Factory function to create configured Fastify ap
       error: "Internal server error", // Generic response to avoid leaking internals
     });
   });
-
+  
   app.register(rateLimit, { // Global rate limiting middleware
     max: 5, // Max requests per time window per IP
     timeWindow: "1 minute", // Rate limit window duration
