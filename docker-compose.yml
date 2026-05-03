@@ -1,11 +1,24 @@
 services:
+  database:
+    image: postgres:17.4-alpine3.21
+    container_name: secret-notes-db
+    environment:
+      POSTGRES_DB: secret_notes
+      POSTGRES_USER: secret
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+
   backend:
     build: ./backend
     container_name: secret-notes-backend
     ports:
       - "3000:3000"
+    depends_on:
+      - database
     environment:
-      - NODE_ENV=development
+      NODE_ENV: development
+      DATABASE_URL: postgresql://secret:secret@database:5432/secret_notes
 
   frontend:
     build: ./frontend
