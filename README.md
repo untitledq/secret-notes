@@ -6,15 +6,16 @@ To prevent over-use of shared runner, small modifications will be done in branch
 
 ## Project Status
 
-| Area                  | Backend |
-|-----------------------|---|
-| **API-Implementation** | ✅|
-| **Crypto**            | ✅|
-| **DB/Prisma**         | ✅|
-| **Tests local (13 passing)** | ✅|
-| **Frontend (basic)**  | ✅|
-| **Code improvements** | ⏳ |
-| **PostHog Integration** | ❌ |
+| Area                              | Backend |
+|-----------------------------------|---|
+| **API-Implementation**            | ✅|
+| **Crypto**                        | ✅|
+| **DB/Prisma**                     | ✅|
+| **Tests local (13 passing)**      | ✅|
+| **Frontend (basic)**              | ✅|
+| **Code improvements**             | ⏳ |
+| **Handle secrets**                | ⏳ |
+| **PostHog Integration**           | ❌ |
 | **Documentation (FHTW template)** | ❌ |
 
 ---
