@@ -13,9 +13,3 @@ services:
 
 volumes:
   postgres_sec_notes_data:
-
-variables:
-  POSTGRES_DB: secret_notes
-  POSTGRES_USER: secret
-  POSTGRES_PASSWORD: secret
-  DATABASE_URL: postgresql://secret:secret@postgres:5432/secret_notes

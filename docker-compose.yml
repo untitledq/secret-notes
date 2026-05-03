@@ -19,6 +19,12 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://secret:secret@database:5432/secret_notes
+    command: >
+      sh -c "
+        until nc -z database 5432; do sleep 1; done;
+        npx prisma migrate deploy &&
+        node src/index.js
+      "
 
   frontend:
     build: ./frontend
