@@ -57,6 +57,18 @@ button:hover {
     background: #0ea5e9;
 }
 
+.button-green {
+  background-color: #15803d;
+  border-color: #15803d;
+  color: white;
+}
+
+.button-green:hover {
+  background-color: #0c4a23;
+  border-color: #0c4a23;
+  color: white;
+}
+
 pre {
     margin-top: 10px;
     background: #020617;
