@@ -28,7 +28,7 @@ To prevent over-use of shared runner, small modifications will be done in branch
 | **SonarQube**                     | ⏳ (reqires AWS)| ❌ |
 | **Test**                          | ✅             | ❌ |
 | **Build** (GitLab Regestry)       | ✅             | ❌ |
-| **Deliver** (DockerHub)           | ⏳             | ❌ |
+| **Deliver** (DockerHub)           | ✅             | ❌ |
 | **Deploy** Blue/Green (AWS)       | ❌             | ❌ |
 | - k6 (performance testing)        | ❌             | ❌ |
 | - Playwright (End-to-End testing) | ❌             | ❌ |
