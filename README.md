@@ -25,8 +25,8 @@ To prevent over-use of shared runner, small modifications will be done in branch
 |-----------------------------------|--|---------------------------|
 | **Lint**                          | ✅| ❌ |
 | **Test**                          | ✅| ❌ |
-| - SonarQube                       | ⭕ | ❌ |
-| - Snyk                            | ⭕ | ❌ |
+| - SonarQube                       | ⏳ | ❌ |
+| - Snyk                            | ✅| ❌ |
 | **Build** (GitLab Regestry)       | ✅| ❌ |
 | **Deliver** (DockerHub)           | ⭕ | ❌ |
 | **Deploy** Blue/Green (AWS)       | ❌ | ❌ |
