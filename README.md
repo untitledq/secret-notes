@@ -24,9 +24,9 @@ To prevent over-use of shared runner, small modifications will be done in branch
 | Stage                             | Backend SaaS | Frontend Jenkins/AWS      |
 |-----------------------------------|--|---------------------------|
 | **Lint**                          | ✅| ❌ |
+| **Snyk**                          | ✅| ❌ |
+| **SonarQube**                     | ⏳ | ❌ |
 | **Test**                          | ✅| ❌ |
-| - SonarQube                       | ⏳ | ❌ |
-| - Snyk                            | ✅| ❌ |
 | **Build** (GitLab Regestry)       | ✅| ❌ |
 | **Deliver** (DockerHub)           | ⭕ | ❌ |
 | **Deploy** Blue/Green (AWS)       | ❌ | ❌ |
