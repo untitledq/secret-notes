@@ -14,35 +14,21 @@ To prevent over-use of shared runner, small modifications will be done in branch
 | **Tests local (13 passing)** | ✅|
 | **Frontend (basic)**  | ✅|
 | **Code improvements** | ⏳ |
-| **PostHog Integration** | ❌ |
+| **PostHog Integration** | ⏳ |
 | **Documentation (FHTW template)** | ❌ |
 
 ---
 
 ### Cloud-hosted Pipeline (GitLab CI SaaS)
 
-| Stage                       | Backend | Frontend         |
-|-----------------------------|------|------------------|
-| Lint                        | ✅ | ⏳ (non-blocking) |
-|                             | |                  |
-| Test                        | ✅ | ⏳ (exists and is non-empty) |
-| SonarQube                   | ⭕ |                  |
-| Snyk                        | ⭕ |                  |
-|                             | |                  |
-| Build (GitLab Regestry)     | ✅ | ✅                |
-|                             | |                  |
-| Deliver (DockerHub)         | ⭕ | ⭕                |
-|                             | |                  |
-| Blue/Green Deployment (AWS) | ❌ | ❌                |
-
----
-
-### Self-hosted Pipeline (Jenkins AWS)
-
-| Stage | Backend | Frontend |
-|-------|---------|----------|
-| Lint | ❌ | ❌ |
-| Test | ❌ | ❌ |
-| Build | ❌ | ❌ |
-| Deliver | ❌ | ❌ |
-| Deploy | ❌ | ❌ |
+| Stage                             | Backend SaaS | Frontend Jenkins/AWS      |
+|-----------------------------------|--|---------------------------|
+| **Lint**                          | ✅| ❌ |
+| **Test**                          | ✅| ❌ |
+| - SonarQube                       | ⭕ | ❌ |
+| - Snyk                            | ⭕ | ❌ |
+| **Build** (GitLab Regestry)       | ✅| ❌ |
+| **Deliver** (DockerHub)           | ⭕ | ❌ |
+| **Deploy** Blue/Green (AWS)       | ❌ | ❌ |
+| - k6 (performance testing)        | ❌ | ❌ |
+| - Playwright (End-to-End testing) | ❌ | ❌ |
