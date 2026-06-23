@@ -78,6 +78,12 @@ build-backend:
   script:
     - echo "Build"
     - docker build -t secret-notes-backend:$CI_COMMIT_SHA ./backend
+    # Push to GitLab registry (artifact storage)
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker tag secret-notes-backend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+    - docker tag secret-notes-backend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/backend:latest
+    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/backend:latest
 
 deliver-backend:
   stage: deliver
@@ -87,19 +93,17 @@ deliver-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
   script:
-    # GitLab Container Registry
+    # Pull from GitLab registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker tag secret-notes-backend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
-    - docker tag secret-notes-backend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/backend:latest
-    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
-    - docker push $CI_REGISTRY_IMAGE/backend:latest
-
-#    # Docker Hub
-#    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USER" --password-stdin
-#    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER/secret-notes-backend:$CI_COMMIT_SHA
-#    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER/secret-notes-backend:latest
-#    - docker push $DOCKERHUB_USER/secret-notes-backend:$CI_COMMIT_SHA
-#    - docker push $DOCKERHUB_USER/secret-notes-backend:latest
+    - docker pull $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+    # Re-tag locally
+    - docker tag $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA secret-notes-backend:$CI_COMMIT_SHA
+    # Docker Hub delivery
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USER" --password-stdin
+    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER/secret-notes-backend:$CI_COMMIT_SHA
+    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER/secret-notes-backend:latest
+    - docker push $DOCKERHUB_USER/secret-notes-backend:$CI_COMMIT_SHA
+    - docker push $DOCKERHUB_USER/secret-notes-backend:latest
 
 
 
