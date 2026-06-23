@@ -21,14 +21,14 @@ To prevent over-use of shared runner, small modifications will be done in branch
 
 ### Cloud-hosted Pipeline (GitLab CI SaaS)
 
-| Stage                             | Backend SaaS   | Frontend Jenkins/AWS      |
-|-----------------------------------|----------------|---------------------------|
-| **Lint**                          | ✅              | ❌ |
-| **Snyk**                          | ✅              | ❌ |
+| Stage                             | Backend SaaS  | Frontend Jenkins/AWS      |
+|-----------------------------------|---------------|---------------------------|
+| **Lint**                          | ✅             | ❌ |
+| **Snyk**                          | ✅             | ❌ |
 | **SonarQube**                     | ⏳ (reqires AWS)| ❌ |
-| **Test**                          | ✅              | ❌ |
-| **Build** (GitLab Regestry)       | ✅              | ❌ |
-| **Deliver** (DockerHub)           | ⏳ | ❌ |
-| **Deploy** Blue/Green (AWS)       | ❌              | ❌ |
-| - k6 (performance testing)        | ❌              | ❌ |
-| - Playwright (End-to-End testing) | ❌              | ❌ |
+| **Test**                          | ✅             | ❌ |
+| **Build** (GitLab Regestry)       | ✅             | ❌ |
+| **Deliver** (DockerHub)           | ⏳             | ❌ |
+| **Deploy** Blue/Green (AWS)       | ❌             | ❌ |
+| - k6 (performance testing)        | ❌             | ❌ |
+| - Playwright (End-to-End testing) | ❌             | ❌ |
