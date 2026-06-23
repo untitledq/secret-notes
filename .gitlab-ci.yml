@@ -27,7 +27,7 @@ lint-backend:
     - if: '$CI_COMMIT_BRANCH == "main"'
   script:
     - cd backend
-    - npm install
+    - npm ci
     - npx eslint .
 
 snyk-backend:
@@ -37,6 +37,8 @@ snyk-backend:
     - if: '$CI_COMMIT_BRANCH == "main"'
   script:
     - echo "Snyk test"
+    - cd backend
+    - npm ci
     - npm install -g snyk
     - snyk auth $SNYK_TOKEN
     - snyk test
@@ -55,10 +57,12 @@ sonar-backend:
     paths:
       - .sonar/cache
   script:
+    - cd backend
+    - npm ci
     - |
       sonar-scanner \
         -Dsonar.projectKey=secret-notes-backend \
-        -Dsonar.sources=backend \
+        -Dsonar.sources=. \
         -Dsonar.host.url=$SONAR_HOST_URL \
         -Dsonar.login=$SONAR_TOKEN \
         -Dsonar.qualitygate.wait=true
@@ -78,7 +82,7 @@ test-backend:
     DATABASE_URL: postgresql://secret:secret@postgres:5432/secret_notes
   script:
     - cd backend
-    - npm install
+    - npm ci
     - apt-get update && apt-get install -y postgresql-client
     - until pg_isready -h postgres -U secret; do sleep 1; done
     - npx prisma generate
