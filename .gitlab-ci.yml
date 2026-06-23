@@ -57,6 +57,7 @@ snyk-backend:
 #    paths:
 #      - .sonar/cache
 #  script:
+#    - echo "SonarQube test"
 #    - cd backend
 #    - npm ci
 #    - |
@@ -70,24 +71,38 @@ snyk-backend:
 build-backend:
   stage: build
   image: docker:latest
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
   services:
     - docker:dind
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
   script:
+    - echo "Build"
+    - docker build -t secret-notes-backend:$CI_COMMIT_SHA ./backend
+
+deliver-backend:
+  stage: deliver
+  image: docker:latest
+  services:
+    - docker:dind
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    # GitLab Container Registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/backend:latest ./backend
+    - docker tag secret-notes-backend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+    - docker tag secret-notes-backend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/backend:latest
     - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
     - docker push $CI_REGISTRY_IMAGE/backend:latest
 
+#    # Docker Hub
+#    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USER" --password-stdin
+#    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER/secret-notes-backend:$CI_COMMIT_SHA
+#    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER/secret-notes-backend:latest
+#    - docker push $DOCKERHUB_USER/secret-notes-backend:$CI_COMMIT_SHA
+#    - docker push $DOCKERHUB_USER/secret-notes-backend:latest
 
-# deliver-backend:
-#   stage: deliver
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
-#   script:
-#     - docker login
-#     - docker push <your-dockerhub>/secret-notes-backend
+
+
 
 # deploy-backend:
 #   stage: deploy
