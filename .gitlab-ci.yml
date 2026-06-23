@@ -51,7 +51,7 @@ test-backend:
     - npm test
 
     - echo "TODO SonarQube scan"
-    - curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-7.3.0.5189-linux-x64.zip
+    - curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-latest-linux-x64.zip
     - unzip -q sonar-scanner.zip
     - export PATH="$PATH:$PWD/sonar-scanner-7.3.0.5189-linux-x64/bin"
     - sonar-scanner
