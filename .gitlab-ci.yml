@@ -68,6 +68,31 @@ snyk-backend:
 #        -Dsonar.login=$SONAR_TOKEN \
 #        -Dsonar.qualitygate.wait=true
 
+test-backend:
+  stage: test
+  image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+  services:
+    - name: postgres:17.4-alpine3.21
+      alias: postgres
+
+  variables:
+    POSTGRES_DB: secret_notes
+    POSTGRES_USER: secret
+    POSTGRES_PASSWORD: secret
+    DATABASE_URL: postgresql://secret:secret@postgres:5432/secret_notes
+
+  script:
+    - cd backend
+    - npm ci
+    - apt-get update && apt-get install -y postgresql-client
+    - until pg_isready -h postgres -U secret; do sleep 1; done
+    - npx prisma generate
+    - npx prisma migrate deploy
+    - npm test
+
 build-backend:
   stage: build
   image: docker:latest
@@ -107,13 +132,13 @@ deliver-backend:
 
 
 
-
 # deploy-backend:
 #   stage: deploy
 #   rules:
 #     - if: '$CI_COMMIT_BRANCH == "main"'
 #   script:
 #     - ansible-playbook infra/ansible/playbooks/deploy.yml
+
 
 
 # =====================================================
