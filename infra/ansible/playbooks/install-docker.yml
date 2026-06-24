@@ -1,6 +1,0 @@
-- name: Install Docker stack
-  hosts: ec2
-  become: yes
-
-  roles:
-    - docker
