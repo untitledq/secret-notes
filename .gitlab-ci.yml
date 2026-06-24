@@ -36,7 +36,7 @@ snyk-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
   script:
-    - echo "Snyk test"
+    - echo "Snyk test backend"
     - cd backend
     - npm ci
     - npm install -g snyk
@@ -137,7 +137,7 @@ deliver-backend:
 #   rules:
 #     - if: '$CI_COMMIT_BRANCH == "main"'
 #   script:
-#     - ansible-playbook infra/ansible/playbooks/deploy.yml
+#     -
 
 
 
@@ -156,6 +156,19 @@ lint-frontend:
     - apt-get update && apt-get install -y tidy
     # intentionally weak / nonblocking for now
     - tidy -q -e index.html || true
+
+snyk-frontend:
+  stage: snyk
+  image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - echo "Snyk test frontend"
+    - cd frontend
+    - npm ci
+    - npm install -g snyk
+    - snyk auth $SNYK_TOKEN
+    - snyk test
 
 test-frontend:
   stage: test
@@ -187,12 +200,11 @@ build-frontend:
 #   rules:
 #     - if: '$CI_COMMIT_BRANCH == "main"'
 #   script:
-#     - docker login
-#     - docker push <your-dockerhub>/secret-notes-frontend
+#     -
 
 # deploy-frontend:
 #   stage: deploy
 #   rules:
 #     - if: '$CI_COMMIT_BRANCH == "main"'
 #   script:
-#     - ansible-playbook infra/ansible/playbooks/deploy.yml
+#     -
