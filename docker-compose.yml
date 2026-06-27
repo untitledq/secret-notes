@@ -16,6 +16,8 @@ services:
       - "3000:3000"
     depends_on:
       - database
+    env_file:
+    - .env
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://secret:secret@database:5432/secret_notes

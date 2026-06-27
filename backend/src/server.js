@@ -3,6 +3,7 @@ import rateLimit from "@fastify/rate-limit"; // Request rate limiting plugin
 import cors from "@fastify/cors";
 import { prisma } from "./db/prismaClient.js"; // Prisma database client
 import { encrypt, decrypt } from "./crypto/cryptoService.js"; // AES-GCM encryption utilities
+import { captureEvent, posthog } from "./analytics/posthog.js";
 
 export function buildApp() { // Factory function to create configured Fastify app
   const app = Fastify({ // Create Fastify instance with base config
@@ -38,6 +39,7 @@ export function buildApp() { // Factory function to create configured Fastify ap
 
   app.addHook("onClose", async () => { // Lifecycle hook on server shutdown
     await prisma.$disconnect(); // Ensure DB connection is closed cleanly
+    await posthog?.shutdown();
   });
 
   app.get("/health", async () => { // Health check endpoint
@@ -73,12 +75,22 @@ export function buildApp() { // Factory function to create configured Fastify ap
           tag: encrypted.tag, // Authentication tag
         },
       });
+      
+      // POSTHOG Capture Event for activities measurement
+      captureEvent(request, "note created", {
+        note_id: note.id,
+        note_length: text.length,
+      });
 
       return {
         id: note.id, // Return generated note ID
         message: "Note stored securely", // Success confirmation
       };
     } catch (error) {
+      // POSTHOG Capture Event for activities measurement
+      captureEvent(request, "note create failed", {
+        reason: "server_error",
+      });
       request.log.error({ error }, "POST /notes failed"); // Log unexpected failure
       return reply.status(500).send({ error: "Internal server error" }); // Generic error response
     }
@@ -129,9 +141,19 @@ export function buildApp() { // Factory function to create configured Fastify ap
               },
               passphrase
           );
+          
+          // POSTHOG Capture Event for activities measurement
+          captureEvent(request, "note loaded", {
+            note_id: note.id,
+          });
 
           return { id: note.id, content: decrypted }; // Return plaintext note
         } catch (error) {
+          // POSTHOG Capture Event for activities measurement
+          captureEvent(request, "note load failed", {
+            note_id: id,
+            reason: "invalid_key_or_corrupted_data",
+          });
           request.log.warn({ error }, "GET /notes/:id failed decryption"); // Log crypto failure
           return reply.status(403).send({ error: "Invalid key or corrupted data" }); // Decryption failure response
         }
