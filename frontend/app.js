@@ -30,9 +30,20 @@ async function saveNote() {
         posthog.capture("note_save_started", { variant });
     }
     try {
+
+        const headers = {
+            "Content-Type": "application/json",
+        };
+        
+        // Forward PostHog identity context so backend events belong to the same user/session
+        if (window.posthog) {
+            headers["X-PostHog-Distinct-Id"] = posthog.get_distinct_id();
+            headers["X-PostHog-Session-Id"] = posthog.get_session_id();
+        }
+
         const res = await fetch(`${API_BASE}/notes`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: "POST", 
+            headers,
             body: JSON.stringify({ text, passphrase })
         });
 
@@ -43,23 +54,10 @@ async function saveNote() {
             return;
         }
 
-        if (window.posthog) {
-            posthog.capture("note_saved_successfully", {
-                variant,
-                note_id: data.id
-            });
-        }
-
         showOutput(`Stored. ID = ${data.id}`);
         document.getElementById("noteId").value = data.id;
     } catch (err) {
         showOutput("Network error while saving");
-        if (window.posthog) {
-            posthog.capture("note_save_failed", {
-                variant,
-                status: "network_error"
-            });
-        }
     }
 }
 
