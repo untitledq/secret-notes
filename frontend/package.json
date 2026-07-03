@@ -1,17 +1,14 @@
 {
-  "name": "frontend",
+  "name": "secret-notes-frontend",
   "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
+  "description": "Frontend for Secret Notes",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint ."
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "devDependencies": {
-    "eslint": "^10.6.0"
+    "@eslint/js": "^9.5.0",
+    "eslint": "^9.5.0",
+    "globals": "^15.6.0"
   }
 }
