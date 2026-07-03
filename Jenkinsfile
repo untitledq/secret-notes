@@ -9,7 +9,12 @@ pipeline {
             steps {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
-                    sh 'npm ci'
+                    sh 'rm -rf node_modules .npm-cache'
+            
+                    // 2. npm ci ausführen und den Cache in den Workspace umbiegen
+                    sh 'npm ci --cache .npm-cache'
+                    
+                    // 3. Linting ausführen
                     sh 'npm run lint'
                 }
             }
