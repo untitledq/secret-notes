@@ -8,6 +8,7 @@ pipeline {
         stage('Lint') {
             steps {
                 echo 'Führe Linter aus...'
+                sh 'npm run lint'
             }
         }
 
