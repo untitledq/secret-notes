@@ -9,6 +9,7 @@ pipeline {
             steps {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
+                    sh 'cd frontend'
                     sh 'npm ci'
                     sh 'npm run lint'
                 }
