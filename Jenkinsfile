@@ -9,7 +9,7 @@ pipeline {
             steps {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
-                    sh 'npm install eslint'
+                    sh 'npm install eslint --cache .npm-cache --global-style'
                     sh 'npx eslint'
                 }
             }
