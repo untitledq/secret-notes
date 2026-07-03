@@ -7,12 +7,21 @@ body {
     margin-top: 40px;
 }
 
+body.experiment-bg-beige {
+    background: #f3eadb;
+    color: #f3eadb;
+}
+
 .container {
     width: 400px;
     background: #1e293b;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.container.experiment-container-brown {
+    background: #503413;
 }
 
 h1 {
@@ -76,4 +85,8 @@ pre {
     border-radius: 4px;
     font-size: 12px;
     min-height: 20px;
+}
+
+pre.experiment-output-brown {
+    background: #34220c;
 }

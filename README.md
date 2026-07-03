@@ -31,21 +31,23 @@ To prevent over-use of shared runner, small modifications will be done in branch
 | **Tests local (13 passing)** | ✅|
 | **Frontend (basic)**  | ✅|
 | **Code improvements** | ⏳ |
-| **PostHog Integration** | ⏳ |
+| **PostHog Integration** | ✅ |
 | **Documentation (FHTW template)** | ❌ |
 
 ---
 
 ### Cloud-hosted Pipeline (GitLab CI SaaS)
 
-| Stage                             | Backend SaaS  | Frontend Jenkins/AWS      |
-|-----------------------------------|---------------|---------------------------|
-| **Lint**                          | ✅             | ❌ |
-| **Snyk**                          | ✅             | ❌ |
-| **SonarQube**                     | ⏳ (reqires AWS)| ❌ |
-| **Test**                          | ✅             | ❌ |
-| **Build** (GitLab Regestry)       | ✅             | ❌ |
-| **Deliver** (DockerHub)           | ✅             | ❌ |
-| **Deploy** Blue/Green (AWS)       | ❌             | ❌ |
-| - k6 (performance testing)        | ❌             | ❌ |
-| - Playwright (End-to-End testing) | ❌             | ❌ |
+| Stage                                  | Backend SaaS  | Frontend Jenkins/AWS      |
+|----------------------------------------|---------------|---------------------------|
+| **Lint**                               | ✅             | ❌ |
+| **Snyk**                               | ✅             | ❌ |
+| **SonarQube**                          | ⏳ (reqires AWS)| ❌ |
+| **Test**                               | ✅             | ❌ |
+| **Build** (GitLab Regestry)            | ✅             | ❌ |
+| **Deliver** (DockerHub)                | ✅             | ❌ |
+| **Check** if both artefacts are ready  | ❌             | ❌ |
+| **Deploy** to passive (Blue/Green-AWS) | ❌             | ❌ |
+| - k6 (performance testing)             | ❌             | ❌ |
+| - Playwright (End-to-End testing)      | ❌             | ❌ |
+| **Switch** Blue/Green if passed        | ❌             | ❌ |
