@@ -43,30 +43,30 @@ snyk-backend:
     - snyk auth $SNYK_TOKEN
     - snyk test
 
-#sonar-backend:
-#  stage: sonar
-#  image:
-#    name: sonarsource/sonar-scanner-cli:latest
-#    entrypoint: [""]
-#  rules:
-#    - if: '$CI_COMMIT_BRANCH == "main"'
-#  variables:
-#    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-#    GIT_DEPTH: "0"
-#  cache:
-#    paths:
-#      - .sonar/cache
-#  script:
-#    - echo "SonarQube test"
-#    - cd backend
-#    - npm ci
-#    - |
-#      sonar-scanner \
-#        -Dsonar.projectKey=secret-notes-backend \
-#        -Dsonar.sources=. \
-#        -Dsonar.host.url=http://$SONAR_HOST_URL:9000 \
-#        -Dsonar.login=$SONAR_TOKEN \
-#        -Dsonar.qualitygate.wait=true
+sonar-backend:
+  stage: sonar
+  image:
+    name: sonarsource/sonar-scanner-cli:12.1
+    entrypoint: [""]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"
+  cache:
+    paths:
+      - .sonar/cache
+  script:
+    - echo "SonarQube test"
+    - cd backend
+    - npm ci
+    - |
+      sonar-scanner \
+        -Dsonar.projectKey=secret-notes-backend \
+        -Dsonar.sources=. \
+        -Dsonar.host.url=$SONAR_HOST_URL \
+        -Dsonar.token=$SONAR_TOKEN \
+        -Dsonar.qualitygate.wait=true
 
 test-backend:
   stage: test
@@ -124,11 +124,11 @@ deliver-backend:
     # Re-tag locally
     - docker tag $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA secret-notes-backend:$CI_COMMIT_SHA
     # Docker Hub delivery
-    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USER" --password-stdin
-    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER/secret-notes-backend:$CI_COMMIT_SHA
-    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER/secret-notes-backend:latest
-    - docker push $DOCKERHUB_USER/secret-notes-backend:$CI_COMMIT_SHA
-    - docker push $DOCKERHUB_USER/secret-notes-backend:latest
+    - echo "$DOCKERHUB_PASSWORD_NEW" | docker login -u "$DOCKERHUB_USER_NEW" --password-stdin
+    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA
+    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER_NEW/secret-notes-backend:latest
+    - docker push $DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA
+    - docker push $DOCKERHUB_USER_NEW/secret-notes-backend:latest
 
 
 
