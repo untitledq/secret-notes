@@ -9,7 +9,8 @@ pipeline {
             steps {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
-                        sh 'npm run lint'
+                    sh 'npm install eslint'
+                    sh 'npx eslint'
                 }
             }
         }
