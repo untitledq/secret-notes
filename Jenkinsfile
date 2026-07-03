@@ -1,4 +1,8 @@
 pipeline {
+    agent {
+        docker { image 'node:20-alpine' }
+    }
+
     stages {
         // 1. LINT
         stage('Lint') {
