@@ -29,7 +29,9 @@ services:
       "
 
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: secret-notes-frontend
     ports:
       - "8080:80"
