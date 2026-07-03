@@ -7,15 +7,10 @@ To prevent over-use of shared runner, small modifications will be done in branch
 
 - create Jenkins pipeline for frontend
 - Host Jenkins on AWS
-- Host SonarQube on AWS
-- Run SonarQube 
-- - uncomment in GitLab for backend pipeline and set variables
-- - - SONAR_HOST_URL
-- - - SONAR_TOKEN
-- - Make Frontend nice and test-worthy
+- Make Frontend nice and test-worthy
 - Add tests and fix findings
 
-
+- RDS PostgreSQL Setup for the Application on AWS
 - Deploy application (blue/green) on AWS
 - Add K6Playwright 
 - Add Playwright
@@ -32,6 +27,7 @@ To prevent over-use of shared runner, small modifications will be done in branch
 | **Frontend (basic)**  | ✅|
 | **Code improvements** | ⏳ |
 | **PostHog Integration** | ✅ |
+| **RDS configuration for PostgreSQL (AWS)** | ❌ |
 | **Documentation (FHTW template)** | ❌ |
 
 ---
@@ -42,7 +38,7 @@ To prevent over-use of shared runner, small modifications will be done in branch
 |----------------------------------------|---------------|---------------------------|
 | **Lint**                               | ✅             | ❌ |
 | **Snyk**                               | ✅             | ❌ |
-| **SonarQube**                          | ⏳ (reqires AWS)| ❌ |
+| **SonarQube**                          | ✅             | ❌ |
 | **Test**                               | ✅             | ❌ |
 | **Build** (GitLab Regestry)            | ✅             | ❌ |
 | **Deliver** (DockerHub)                | ✅             | ❌ |
