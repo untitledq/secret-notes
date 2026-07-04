@@ -102,7 +102,7 @@ pipeline {
             steps {
                 echo 'Baue das Docker-Image lokal auf dem Server...'
                 dir('frontend') {
-                    withCredentials([string(credentialsId: 'DOCKER_HUB_USER', variable: 'DOCKER_USER')]) {
+                    withCredentials([string(credentialsId: 'DOCKERHUB_USER', variable: 'DOCKER_USER')]) {
                         sh '''
                             # Zwingt den Usernamen komplett in Kleinbuchstaben (behebt den Docker-Fehler)
                             DOCKER_USER_LOWER=$(echo "$DOCKER_USER" | tr '[:upper:]' '[:lower:]')
@@ -127,8 +127,8 @@ pipeline {
                 echo 'Logge bei Docker Hub ein und pushe die Images...'
                 dir('frontend') {
                     withCredentials([
-                        string(credentialsId: 'DOCKER_HUB_USER', variable: 'DOCKER_USER'),
-                        string(credentialsId: 'DOCKER_HUB_PASSWORD', variable: 'DOCKER_PASS')
+                        string(credentialsId: 'DOCKERHUB_USER', variable: 'DOCKER_USER'),
+                        string(credentialsId: 'DOCKERHUB_PASSWORD', variable: 'DOCKER_PASS')
                     ]) {
                         sh '''
                             # Auch hier komplett in Kleinbuchstaben umwandeln
