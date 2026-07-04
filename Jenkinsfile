@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker { 
             image 'node:20-alpine'
-            args '-v /tmp:/tmp -e HOME=/tmp'
+            args '-e HOME=/home/node'
         }
     }
 
@@ -19,7 +19,9 @@ pipeline {
             steps {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
-                    sh 'npm ci --cache .npm-cache'
+                    // Wir legen den Cache explizit lokal in den Workspace. 
+                    // Das ist zu 100% sicher vor Rechteproblemen!
+                    sh 'npm ci --cache ./.npm-cache --no-audit'
                     sh 'npm run lint'
                 }
             }
@@ -34,7 +36,8 @@ pipeline {
                 echo "Snyk test frontend"
                 dir('frontend') {
                     script {
-                        docker.image('snyk/snyk:node').inside('-v /tmp:/tmp -e HOME=/tmp') {
+                        // Snyk läuft isoliert in seinem eigenen Container
+                        docker.image('snyk/snyk:node').inside('-e HOME=/home/node') {
                             sh 'snyk test --severity-threshold=high'
                         }
                     }
