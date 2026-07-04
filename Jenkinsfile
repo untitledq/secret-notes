@@ -96,59 +96,67 @@ pipeline {
             }
         }
 
-        // 4. BUILD STAGE
+        // 4. BUILD
         stage('Build Docker Image') {
             agent any
             steps {
                 echo 'Baue das Docker-Image lokal auf dem Server...'
                 dir('frontend') {
-                    sh '''
-                        COMMIT_SHA=$(git rev-parse --short HEAD)
-                        export DOCKER_BUILDKIT=0
-                        
-                        # Wir bauen das Image mit einem festen, sicheren lokalen Namen ohne Variablen!
-                        docker build -t local-frontend:$COMMIT_SHA -t local-frontend:latest .
-                    '''
+                    // Wir holen den Usernamen aus den Jenkins-Secrets
+                    withCredentials([string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER')]) {
+                        sh '''
+                            # Wandelt den Usernamen direkt im RAM in Kleinbuchstaben um – ohne Rohdaten im Code!
+                            MY_USER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
+                            COMMIT_SHA=$(git rev-parse --short HEAD)
+                            
+                            export DOCKER_BUILDKIT=0
+                            
+                            # Wir bauen das Image lokal direkt mit dem richtigen Namen
+                            docker build -t local-frontend:$COMMIT_SHA -t local-frontend:latest .
+                        '''
+                    }
                 }
             }
         }
 
-        // 5. DELIVER STAGE
+        // 5. DELIVER
         stage('Deliver to Docker Hub') {
             agent any 
             steps {
-                echo 'Logge bei Docker Hub ein und pushe die Images...'
+                echo 'Logge bei Docker Hub via Token ein und pushe die Images...'
                 dir('frontend') {
                     withCredentials([
                         string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
-                        string(credentialsId: 'DOCKERHUB_PASSWORD', variable: 'RAW_PASS')
+                        string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN') 
                     ]) {
                         sh '''
-                            DOCKER_USER_LOWER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
                             COMMIT_SHA=$(git rev-parse --short HEAD)
                             export DOCKER_BUILDKIT=0
                             
-                            # 1. Bei Docker Hub einloggen
-                            echo "$RAW_PASS" | docker login -u "$RAW_USER" --password-stdin
+                            # HIER WIEDER DEINEN NAMEN IN KLEINBUCHSTABEN EINTRAGEN:
+                            MY_USER="dein_dockerhub_username"
                             
-                            # 2. Die lokalen Images erst HIER für Docker Hub verknüpfen (Tagging)
-                            docker tag local-frontend:$COMMIT_SHA ${DOCKER_USER_LOWER}/secret-notes-frontend:$COMMIT_SHA
-                            docker tag local-frontend:latest ${DOCKER_USER_LOWER}/secret-notes-frontend:latest
+                            # 1. Bei Docker Hub mit dem Token einloggen
+                            echo "$RAW_TOKEN" | docker login -u "$RAW_USER" --password-stdin
+                            
+                            # 2. Die lokalen Images mit dem Docker Hub Pfad verknüpfen
+                            docker tag local-frontend:latest ${MY_USER}/secret-notes-frontend:latest
+                            docker tag local-frontend:$COMMIT_SHA ${MY_USER}/secret-notes-frontend:$COMMIT_SHA
                             
                             # 3. Beide Tags zu Docker Hub pushen
-                            docker push ${DOCKER_USER_LOWER}/secret-notes-frontend:$COMMIT_SHA
-                            docker push ${DOCKER_USER_LOWER}/secret-notes-frontend:latest
+                            docker push ${MY_USER}/secret-notes-frontend:latest
+                            docker push ${MY_USER}/secret-notes-frontend:$COMMIT_SHA
                             
-                            # 4. Alle lokalen Images rückstandslos löschen
+                            # 4. Lokale Images löschen, um AWS-Speicher zu sparen
                             docker rmi local-frontend:$COMMIT_SHA local-frontend:latest
-                            docker rmi ${DOCKER_USER_LOWER}/secret-notes-frontend:$COMMIT_SHA
-                            docker rmi ${DOCKER_USER_LOWER}/secret-notes-frontend:latest
+                            docker rmi ${MY_USER}/secret-notes-frontend:$COMMIT_SHA
+                            docker rmi ${MY_USER}/secret-notes-frontend:latest
                             
                             docker logout
                         '''
                     }
                 }
-                echo 'Frontend erfolgreich auf Docker Hub bereitgestellt! 🚀'
+                echo 'Frontend erfolgreich via Token auf Docker Hub bereitgestellt! 🚀'
             }
         }
 
