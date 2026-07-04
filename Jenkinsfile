@@ -119,22 +119,23 @@ pipeline {
             }
         }
 
-        // 5. DELIVER
+        // 5. DELIVER STAGE
         stage('Deliver to Docker Hub') {
             agent any 
             steps {
                 echo 'Logge bei Docker Hub via Token ein und pushe die Images...'
                 dir('frontend') {
+                    // Hier nutzen wir beide Secrets (User + Token)
                     withCredentials([
                         string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
-                        string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN') 
+                        string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN')
                     ]) {
                         sh '''
+                            # Auch hier: Umwandlung direkt im Speicher
+                            MY_USER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
                             COMMIT_SHA=$(git rev-parse --short HEAD)
-                            export DOCKER_BUILDKIT=0
                             
-                            # HIER WIEDER DEINEN NAMEN IN KLEINBUCHSTABEN EINTRAGEN:
-                            MY_USER="dein_dockerhub_username"
+                            export DOCKER_BUILDKIT=0
                             
                             # 1. Bei Docker Hub mit dem Token einloggen
                             echo "$RAW_TOKEN" | docker login -u "$RAW_USER" --password-stdin
