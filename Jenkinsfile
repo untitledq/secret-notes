@@ -96,17 +96,51 @@ pipeline {
             }
         }
 
-        // 5. BUILD (GitLab Registry)
+        // 5. BUILD 
         stage('Build Docker Image') {
+            agent any
+            environment {
+                COMMIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+            }
             steps {
-                echo 'Baue Docker-Image für das Frontend...'
+                echo 'Baue das Docker-Image lokal auf dem Server...'
+                dir('frontend') {
+                    withCredentials([string(credentialsId: 'DOCKERHUB_USER', variable: 'DOCKER_USER')]) {
+                        sh """
+                            docker build -t \$DOCKER_USER/secret-notes-frontend:${COMMIT_SHA} -t \$DOCKER_USER/secret-notes-frontend:latest .
+                        """
+                    }
+                }
             }
         }
 
-        // 6. DELIVER (DockerHub / Registry)
-        stage('Deliver') {
+        // 6. DELIVER 
+        stage('Deliver to Docker Hub') {
+            agent any 
+            environment {
+                COMMIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+            }
             steps {
-                echo 'Pushe Image in die Registry...'
+                echo 'Logge bei Docker Hub ein und pushe die Images...'
+                dir('frontend') {
+                    withCredentials([
+                        string(credentialsId: 'DOCKERHUB_USER', variable: 'DOCKER_USER'),
+                        string(credentialsId: 'DOCKERHUB_PASSWORD', variable: 'DOCKER_PASS')
+                    ]) {
+                        sh """
+                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+                            
+                            docker push \$DOCKER_USER/secret-notes-frontend:${COMMIT_SHA}
+                            docker push \$DOCKER_USER/secret-notes-frontend:latest
+                            
+                            docker rmi \$DOCKER_USER/secret-notes-frontend:${COMMIT_SHA}
+                            docker rmi \$DOCKER_USER/secret-notes-frontend:latest
+                            
+                            docker logout
+                        """
+                    }
+                }
+                echo 'Frontend erfolgreich auf Docker Hub bereitgestellt!'
             }
         }
 
