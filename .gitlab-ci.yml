@@ -15,6 +15,7 @@ stages:
   - build
   - deliver
   - deploy
+  - notify
 
 # =====================================================
 # BACKEND
@@ -208,3 +209,15 @@ build-frontend:
 #     - if: '$CI_COMMIT_BRANCH == "main"'
 #   script:
 #     -
+notify-failure-slack:
+  stage: notify
+  image: curlimages/curl:latest
+  when: on_failure
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' \
+      --data "{\"text\":\"Pipeline failed: $CI_PROJECT_NAME / $CI_COMMIT_BRANCH\n$CI_PIPELINE_URL\"}" \
+      "$SLACK_WEBHOOK_URL"
