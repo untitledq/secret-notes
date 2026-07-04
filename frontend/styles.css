@@ -5,6 +5,7 @@ body {
     display: flex;
     justify-content: center;
     margin-top: 40px;
+    overflow-x: hidden;
 }
 
 body.experiment-bg-beige {
@@ -13,11 +14,66 @@ body.experiment-bg-beige {
 }
 
 .container {
+    position: relative;
+    z-index: 1;
     width: 400px;
     background: #1e293b;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.icon-background {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.icon-escalator {
+    position: absolute;
+    left: 0;
+    display: flex;
+    width: max-content;
+    opacity: 0.16;
+    transform: translateX(0);
+}
+
+.icon-loop {
+    display: flex;
+    gap: 46px;
+    padding-right: 46px;
+}
+
+.icon-loop img {
+    width: 36px;
+    height: 36px;
+    filter: invert(78%) sepia(78%) saturate(428%) hue-rotate(172deg) brightness(101%) contrast(94%);
+    transform: rotate(-16deg);
+}
+
+.icon-escalator-a {
+    top: 18%;
+}
+
+.icon-escalator-b {
+    top: 72%;
+    opacity: 0.1;
+}
+
+body.experiment-bg-beige .icon-loop img {
+    filter: invert(31%) sepia(54%) saturate(729%) hue-rotate(355deg) brightness(84%) contrast(86%);
+}
+
+@keyframes iconEscalatorFallback {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-50%);
+    }
 }
 
 .container.experiment-container-brown {

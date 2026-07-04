@@ -6,6 +6,7 @@ const LOAD_VAULT_SELECTOR = "#loadNoteVault";
 // --- health check on startup ---
 window.addEventListener("DOMContentLoaded", async () => {
     setupTabs();
+    startBackgroundIconAnimation();
     applyTestGroupUIExperiment();
     try {
         const res = await fetch(`${API_BASE}/health`);
@@ -96,6 +97,98 @@ async function loadNote() {
 
 function showOutput(msg) {
     document.getElementById("output").textContent = msg;
+}
+
+function startBackgroundIconAnimation() {
+    alignBackgroundIconRows();
+    const iconPath = getBackgroundIconPath();
+    const rows = [
+        { selector: ".icon-escalator-a", duration: 24, delay: 0 },
+        { selector: ".icon-escalator-b", duration: 24, delay: -8 }
+    ];
+
+    rows.forEach(({ selector, duration, delay }) => {
+        const row = document.querySelector(selector);
+
+        if (!row) {
+            return;
+        }
+
+        fillIconRow(row, iconPath);
+
+        if (!window.gsap) {
+            row.style.animation = `iconEscalatorFallback ${duration}s linear infinite`;
+            return;
+        }
+
+        const loopWidth = row.querySelector(".icon-loop")?.offsetWidth || 0;
+
+        if (!loopWidth) {
+            return;
+        }
+
+        gsap.set(row, {
+            x: 0
+        });
+
+        gsap.to(row, {
+            x: -loopWidth,
+            duration,
+            ease: "none",
+            repeat: -1,
+            delay
+        });
+    });
+}
+
+function alignBackgroundIconRows() {
+    const title = document.querySelector("h1");
+    const output = document.getElementById("output");
+    const topRow = document.querySelector(".icon-escalator-a");
+    const bottomRow = document.querySelector(".icon-escalator-b");
+
+    if (title && topRow) {
+        const titleRect = title.getBoundingClientRect();
+        topRow.style.top = `${titleRect.top + titleRect.height / 2 - 18}px`;
+    }
+
+    if (output && bottomRow) {
+        const outputRect = output.getBoundingClientRect();
+        bottomRow.style.top = `${outputRect.top + outputRect.height / 2 - 18}px`;
+    }
+}
+
+function getBackgroundIconPath() {
+    const isLoveLetterVariant = document
+        .querySelector(".container")
+        ?.classList.contains("experiment-container-brown");
+
+    return isLoveLetterVariant
+        ? "vendor/icons/heart.svg"
+        : "vendor/icons/search.svg";
+}
+
+function refreshBackgroundIcons() {
+    document.querySelectorAll(".icon-escalator").forEach((row) => {
+        fillIconRow(row, getBackgroundIconPath());
+    });
+}
+
+function fillIconRow(row, iconPath) {
+    const iconSpacing = 82;
+    const iconCount = Math.ceil(window.innerWidth / iconSpacing) + 4;
+    const loop = document.createElement("div");
+
+    loop.className = "icon-loop";
+
+    for (let i = 0; i < iconCount; i += 1) {
+        const icon = document.createElement("img");
+        icon.src = iconPath;
+        icon.alt = "";
+        loop.appendChild(icon);
+    }
+
+    row.replaceChildren(loop, loop.cloneNode(true));
 }
 
 function setupTabs() {
@@ -520,5 +613,6 @@ function applyTestGroupUIExperiment() {
         document.body.classList.toggle("experiment-bg-beige", isTestGroup);
         container.classList.toggle("experiment-container-brown", isTestGroup);
         output.classList.toggle("experiment-output-brown", isTestGroup);
+        refreshBackgroundIcons();
     });
 }
