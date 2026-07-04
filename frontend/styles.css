@@ -101,6 +101,10 @@ textarea[readonly] {
     pointer-events: none;
 }
 
+.encrypt-overlay {
+    display: none;
+}
+
 .vault-door {
     position: absolute;
     top: 0;
@@ -258,7 +262,13 @@ textarea[readonly] {
 
 .experiment-container-brown .heart-sticker {
     display: flex;
+    top: 66%;
     z-index: 6;
+}
+
+.experiment-container-brown #createNoteVault .heart-sticker {
+    left: 46%;
+    top: 50%;
 }
 
 .experiment-container-brown textarea[readonly] {

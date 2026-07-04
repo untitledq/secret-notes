@@ -16,7 +16,24 @@
 
   <section id="createPanel" class="tab-panel" role="tabpanel" aria-labelledby="createTab">
     <label for="createNote">Note</label>
-    <textarea id="createNote" placeholder="Enter your secret note"></textarea>
+    <div id="createNoteVault" class="note-vault">
+      <textarea id="createNote" placeholder="Enter your secret note"></textarea>
+      <div id="createVaultOverlay" class="vault-overlay encrypt-overlay" aria-hidden="true">
+        <div class="vault-door vault-door-left"></div>
+        <div class="vault-door vault-door-right"></div>
+        <div class="vault-line"></div>
+        <div class="love-envelope-back"></div>
+        <div class="love-envelope-flap"></div>
+        <div class="love-envelope-front"></div>
+        <div class="vault-lock">
+          <div class="lock-shackle"></div>
+          <div class="lock-body">
+            <div class="lock-keyhole"></div>
+          </div>
+        </div>
+        <div class="heart-sticker">&hearts;</div>
+      </div>
+    </div>
 
     <label for="createKey">Encryption key</label>
     <input id="createKey" type="password" placeholder="Encryption key" />
@@ -49,7 +66,7 @@
             <div class="lock-keyhole"></div>
           </div>
         </div>
-        <div class="heart-sticker">♥</div>
+        <div class="heart-sticker">&hearts;</div>
       </div>
     </div>
 
