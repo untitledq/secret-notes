@@ -60,7 +60,7 @@ pipeline {
             }
             environment {
                 SONAR_TOKEN    = credentials('SONAR_TOKEN')
-                SONAR_HOST_URL = 'http://DEINE-SONARQUBE-IP:9000'
+                SONAR_HOST_URL = credentials('SONAR_HOST_URL')
             }
             steps {
                 echo 'Sende Daten an SonarQube...'
