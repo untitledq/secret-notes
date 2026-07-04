@@ -25,12 +25,11 @@ pipeline {
             }
         }
 
-        // 2. SNYK: Holt sich das Snyk-Image NUR für diesen Stage
+        // 2. SNYK (Security Scan)
         stage('Snyk Security Scan') {
             agent {
                 docker { 
                     image 'snyk/snyk:node'
-                    args '-e HOME=/home/node'
                 }
             }
             environment {
@@ -39,7 +38,7 @@ pipeline {
             steps {
                 echo "Snyk test frontend"
                 dir('frontend') {
-                    sh 'snyk test --severity-threshold=high'
+                    sh 'export XDG_CONFIG_HOME=\$(pwd)/.config && snyk test --severity-threshold=high'
                 }
             }
         }
