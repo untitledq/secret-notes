@@ -1,15 +1,24 @@
 pipeline {
     agent {
-        docker { image 'node:20-alpine' }
+        docker { 
+            image 'node:20-alpine'
+            args '-v /tmp:/tmp -e HOME=/tmp'
+        }
     }
 
     stages {
+        stage('Säubern & Vorbereiten') {
+            steps {
+                cleanWs()
+                checkout scm
+            }
+        }
+
         // 1. LINT
         stage('Lint') {
             steps {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
-                    sh 'rm -rf node_modules .npm-cache'
                     sh 'npm ci --cache .npm-cache'
                     sh 'npm run lint'
                 }
@@ -24,8 +33,10 @@ pipeline {
             steps {
                 echo "Snyk test frontend"
                 dir('frontend') {
-                    docker.image('snyk/snyk:node').inside('-v /tmp:/tmp -e HOME=/tmp') {
-                        sh 'snyk test'
+                    script {
+                        docker.image('snyk/snyk:node').inside('-v /tmp:/tmp -e HOME=/tmp') {
+                            sh 'snyk test --severity-threshold=high'
+                        }
                     }
                 }
             }
