@@ -168,7 +168,6 @@ snyk-frontend:
     - if: '$CI_COMMIT_BRANCH == "main"'
   script:
     - echo "Snyk test frontend"
-    - cd frontend
     - npm ci
     - npm install -g snyk
     - snyk auth $SNYK_TOKEN
