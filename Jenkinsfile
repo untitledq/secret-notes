@@ -19,9 +19,15 @@ pipeline {
             steps {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
-                    sh 'rm -rf node_modules .npm-cache'
-                    sh 'npm ci --no-audit --no-cache'
-                    sh 'npm run lint'
+                    sh '''
+                        rm -rf node_modules .npm-cache
+                        
+                        export npm_config_cache=\$(pwd)/.npm-cache
+                        export npm_config_userconfig=\$(pwd)/.npmrc
+                        
+                        npm ci --no-audit
+                        npm run lint
+                    '''
                 }
             }
         }
