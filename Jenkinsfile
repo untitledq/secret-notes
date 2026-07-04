@@ -51,7 +51,25 @@ pipeline {
             }
         }
 
-        // 3. SONARQUBE
+        // 3. UNIT TESTS
+        stage('Unit Tests & Coverage') {
+            agent {
+                docker { 
+                    image 'node:20-alpine'
+                }
+            }
+            steps {
+                echo 'Führe Jest-Tests aus...'
+                dir('frontend') {
+                    sh '''
+                        export npm_config_cache=\$(pwd)/.npm-cache
+                        npm run test -- --coverage --watchAll=false
+                    '''
+                }
+            }
+        }
+
+        // 4. SONARQUBE
         stage('SonarQube Analysis') {
             agent {
                 docker {
@@ -75,13 +93,6 @@ pipeline {
                         -Dsonar.userHome=\$(pwd)/.sonar
                     '''
                 }
-            }
-        }
-
-        // 4. TEST
-        stage('Unit Tests') {
-            steps {
-                echo 'Führe Frontend Unit-Tests aus...'
             }
         }
 
