@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Frontend for Secret Notes",
   "private": true,
+  "type": "module",
   "scripts": {
     "lint": "eslint .",
     "test": "jest"
@@ -10,6 +11,7 @@
   "devDependencies": {
     "@eslint/js": "^9.5.0",
     "eslint": "^9.5.0",
+    "eslint-plugin-jest": "^28.6.0",
     "globals": "^15.6.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0"
