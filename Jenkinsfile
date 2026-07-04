@@ -34,15 +34,15 @@ pipeline {
             }
             environment {
                 SNYK_TOKEN = credentials('SNYK_TOKEN')
+                HOME = "${WORKSPACE}/frontend"
             }
             steps {
                 echo "Snyk test frontend"
                 dir('frontend') {
-                    sh 'export XDG_CONFIG_HOME=\$(pwd)/.config && snyk test --severity-threshold=high'
+                    sh 'snyk test --severity-threshold=high'
                 }
             }
         }
-
         // 3. SONARQUBE
         stage('SonarQube Analysis') {
             steps {
