@@ -39,8 +39,6 @@ pipeline {
             steps {
                 echo "Snyk test frontend"
                 dir('frontend') {
-                    // Snyk läuft hier ohne 'script { ... }' Verschachtelung,
-                    // weil wir die sauberere Agent-Struktur nutzen!
                     sh 'snyk test --severity-threshold=high'
                 }
             }
