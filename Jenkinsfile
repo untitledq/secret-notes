@@ -1,45 +1,51 @@
 pipeline {
-    agent {
-        docker { 
-            image 'node:20-alpine'
-            args '-e HOME=/home/node'
-        }
-    }
+    agent any 
 
     stages {
+        // 0. SÄUBERUNG: Läuft jetzt sicher auf dem Server, ohne Jenkins zu verwirren
         stage('Säubern & Vorbereiten') {
             steps {
                 cleanWs()
                 checkout scm
             }
         }
-        
-        // 1. LINT
+
+        // 1. LINT: Holt sich den Node-Container NUR für diesen Stage
         stage('Lint') {
+            agent {
+                docker { 
+                    image 'node:20-alpine'
+                    // Der npm-Cache wird sicher im Home des Containers abgelegt
+                    args '-e HOME=/home/node' 
+                }
+            }
             steps {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
-                    sh 'rm -rf node_modules .npm-cache'
-                    sh 'npm ci --cache .npm-cache'
+                    // Kein 'rm -rf' mehr nötig, da der Workspace komplett leer gestartet ist!
+                    sh 'npm ci --no-audit'
                     sh 'npm run lint'
                 }
             }
         }
 
-        // 2. SNYK (Security Scan)
+        // 2. SNYK: Holt sich das Snyk-Image NUR für diesen Stage
         stage('Snyk Security Scan') {
+            agent {
+                docker { 
+                    image 'snyk/snyk:node'
+                    args '-e HOME=/home/node'
+                }
+            }
             environment {
                 SNYK_TOKEN = credentials('SNYK_TOKEN')
             }
             steps {
                 echo "Snyk test frontend"
                 dir('frontend') {
-                    script {
-                        // Snyk läuft isoliert in seinem eigenen Container
-                        docker.image('snyk/snyk:node').inside('-e HOME=/home/node') {
-                            sh 'snyk test --severity-threshold=high'
-                        }
-                    }
+                    // Snyk läuft hier ohne 'script { ... }' Verschachtelung,
+                    // weil wir die sauberere Agent-Struktur nutzen!
+                    sh 'snyk test --severity-threshold=high'
                 }
             }
         }
