@@ -59,9 +59,13 @@ pipeline {
                 }
             }
             environment {
-                SONAR_TOKEN = credentials('SONAR_TOKEN')
-                SONAR_HOST_URL = credentials('SONAR_HOST_URL')
-                HOME = "${WORKSPACE}/frontend"
+                SONAR_TOKEN    = credentials('SONAR_TOKEN')
+                SONAR_HOST_URL = 'http://DEINE-SONARQUBE-IP:9000'
+                
+                // DIESE BEIDEN ZEILEN LÖSEN DAS RECHTEPROBLEM:
+                // Wir verbiegen das Home- und das User-Home-Verzeichnis direkt in den Workspace
+                HOME           = "${WORKSPACE}/frontend"
+                SONAR_USER_HOME = "${WORKSPACE}/frontend/.sonar"
             }
             steps {
                 echo 'Sende Daten an SonarQube...'
