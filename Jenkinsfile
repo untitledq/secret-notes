@@ -18,14 +18,16 @@ pipeline {
 
         // 2. SNYK (Security Scan)
         stage('Snyk Security Scan') {
+            environment {
+                // Holt das Token aus den Jenkins-Credentials und stellt es Snyk automatisch bereit
+                SNYK_TOKEN = credentials('SNYK_TOKEN')
+            }
             steps {
                 echo 'Scanne Abhängigkeiten mit Snyk...'
-                dir('frontend') {
-                    withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
-                        sh 'npm ci --cache .npm-cache'
-                        sh 'npm install -g snyk'
-                        sh 'snyk auth $SNYK_TOKEN'
-                        sh 'snyk test --all-projects'
+                
+                docker.image('snyk/snyk:node').inside('-v /tmp:/tmp -e HOME=/tmp') {
+                    dir('frontend') {
+                        sh 'snyk test --severity-threshold=high'
                     }
                 }
             }
