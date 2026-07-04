@@ -13,13 +13,13 @@ pipeline {
             agent {
                 docker { 
                     image 'node:20-alpine'
-                    args '-e npm_config_cache=/var/lib/jenkins/workspace/ConnintFrontend@2/frontend/.npm-cache'
                 }
             }
             steps {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
-                    sh 'npm ci --cache ./.npm-cache --no-audit'
+                    sh 'rm -rf node_modules .npm-cache'
+                    sh 'export npm_config_cache=./.npm-cache && npm ci --no-audit'
                     sh 'npm run lint'
                 }
             }
