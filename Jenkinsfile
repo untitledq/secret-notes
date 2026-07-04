@@ -96,7 +96,7 @@ pipeline {
             }
         }
 
-        // 4. BUILD STAGE
+        // 4. BUILD
         stage('Build Docker Image') {
             agent any
             steps {
@@ -104,23 +104,19 @@ pipeline {
                 dir('frontend') {
                     withCredentials([string(credentialsId: 'DOCKERHUB_USER', variable: 'DOCKER_USER')]) {
                         sh '''
-                            # Zwingt den Usernamen komplett in Kleinbuchstaben
+                            # Usernamen komplett in Kleinbuchstaben wandeln
                             DOCKER_USER_LOWER=$(echo "$DOCKER_USER" | tr '[:upper:]' '[:lower:]')
-                            
-                            # Holt die Commit-SHA
                             COMMIT_SHA=$(git rev-parse --short HEAD)
                             
-                            # Aktiviert BuildKit
-                            export DOCKER_BUILDKIT=1
-                            
-                            docker build -t "${DOCKER_USER_LOWER}/secret-notes-frontend:${COMMIT_SHA}" -t "${DOCKER_USER_LOWER}/secret-notes-frontend:latest" .
+                            # Wir nutzen den normalen Docker-Builder ohne das BuildKit-Flag
+                            docker build -t $DOCKER_USER_LOWER/secret-notes-frontend:$COMMIT_SHA -t $DOCKER_USER_LOWER/secret-notes-frontend:latest .
                         '''
                     }
                 }
             }
         }
 
-        // 5. DELIVER STAGE
+        // 5. DELIVER
         stage('Deliver to Docker Hub') {
             agent any 
             steps {
@@ -131,20 +127,19 @@ pipeline {
                         string(credentialsId: 'DOCKERHUB_PASSWORD', variable: 'DOCKER_PASS')
                     ]) {
                         sh '''
-                            # Auch hier komplett in Kleinbuchstaben umwandeln
                             DOCKER_USER_LOWER=$(echo "$DOCKER_USER" | tr '[:upper:]' '[:lower:]')
                             COMMIT_SHA=$(git rev-parse --short HEAD)
                             
-                            # 1. Bei Docker Hub einloggen (mit originalem Usernamen)
+                            # 1. Bei Docker Hub einloggen
                             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                             
                             # 2. Beide Tags zu Docker Hub pushen
-                            docker push "${DOCKER_USER_LOWER}/secret-notes-frontend:${COMMIT_SHA}"
-                            docker push "${DOCKER_USER_LOWER}/secret-notes-frontend:latest"
+                            docker push $DOCKER_USER_LOWER/secret-notes-frontend:$COMMIT_SHA
+                            docker push $DOCKER_USER_LOWER/secret-notes-frontend:latest
                             
-                            # 3. Lokale Images löschen
-                            docker rmi "${DOCKER_USER_LOWER}/secret-notes-frontend:${COMMIT_SHA}"
-                            docker rmi "${DOCKER_USER_LOWER}/secret-notes-frontend:latest"
+                            # 3. Lokale Images löschen, um AWS-Speicher zu sparen
+                            docker rmi $DOCKER_USER_LOWER/secret-notes-frontend:$COMMIT_SHA
+                            docker rmi $DOCKER_USER_LOWER/secret-notes-frontend:latest
                             
                             docker logout
                         '''
