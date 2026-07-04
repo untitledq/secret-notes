@@ -61,11 +61,6 @@ pipeline {
             environment {
                 SONAR_TOKEN    = credentials('SONAR_TOKEN')
                 SONAR_HOST_URL = 'http://DEINE-SONARQUBE-IP:9000'
-                
-                // DIESE BEIDEN ZEILEN LÖSEN DAS RECHTEPROBLEM:
-                // Wir verbiegen das Home- und das User-Home-Verzeichnis direkt in den Workspace
-                HOME           = "${WORKSPACE}/frontend"
-                SONAR_USER_HOME = "${WORKSPACE}/frontend/.sonar"
             }
             steps {
                 echo 'Sende Daten an SonarQube...'
@@ -76,7 +71,8 @@ pipeline {
                         -Dsonar.projectName="Secret Notes Frontend" \
                         -Dsonar.sources=. \
                         -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.token=${SONAR_TOKEN}
+                        -Dsonar.token=${SONAR_TOKEN} \
+                        -Dsonar.userHome=\$(pwd)/.sonar
                     '''
                 }
             }
