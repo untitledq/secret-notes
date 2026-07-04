@@ -43,10 +43,36 @@ pipeline {
                 }
             }
         }
+
         // 3. SONARQUBE
         stage('SonarQube Analysis') {
+            agent {
+                docker {
+                    // Das offizielle, schlanke SonarQube-Scanner Image
+                    image 'sonarsource/sonar-scanner-cli:latest'
+                }
+            }
+            environment {
+                // Holt das Token aus dem Jenkins-Tresor
+                SONAR_TOKEN = credentials('SONAR_TOKEN')
+                // HIER DEINE ECHTE SONARQUBE-URL EINTRAGEN (z.B. http://123.45.67.89:9000)
+                SONAR_HOST_URL = 'http://DEINE-SONARQUBE-IP:9000'
+                // Zwingt den Scanner, im Workspace zu arbeiten (behebt Rechteprobleme)
+                HOME = "${WORKSPACE}/frontend"
+            }
             steps {
                 echo 'Sende Daten an SonarQube...'
+                dir('frontend') {
+                    // Führt den Scan aus. Wir definieren den Projektschlüssel direkt im Befehl.
+                    sh '''
+                        sonar-scanner \
+                        -Dsonar.projectKey=secret-notes-frontend \
+                        -Dsonar.projectName="Secret Notes Frontend" \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=${SONAR_HOST_URL} \
+                        -Dsonar.token=${SONAR_TOKEN}
+                    '''
+                }
             }
         }
 
