@@ -104,7 +104,7 @@ pipeline {
                 dir('frontend') {
                     withCredentials([string(credentialsId: 'DOCKERHUB_USER', variable: 'DOCKER_USER')]) {
                         sh '''
-                            # Zwingt den Usernamen komplett in Kleinbuchstaben (behebt den Docker-Fehler)
+                            # Zwingt den Usernamen komplett in Kleinbuchstaben
                             DOCKER_USER_LOWER=$(echo "$DOCKER_USER" | tr '[:upper:]' '[:lower:]')
                             
                             # Holt die Commit-SHA
@@ -135,7 +135,7 @@ pipeline {
                             DOCKER_USER_LOWER=$(echo "$DOCKER_USER" | tr '[:upper:]' '[:lower:]')
                             COMMIT_SHA=$(git rev-parse --short HEAD)
                             
-                            # 1. Bei Docker Hub einloggen (hier MUSS der originale Username mit Groß-/Kleinschreibung rein!)
+                            # 1. Bei Docker Hub einloggen (mit originalem Usernamen)
                             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                             
                             # 2. Beide Tags zu Docker Hub pushen
