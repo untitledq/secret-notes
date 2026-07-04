@@ -96,53 +96,54 @@ pipeline {
             }
         }
 
+        // 4. BUILD STAGE
         stage('Build Docker Image') {
             agent any
             steps {
                 echo 'Baue das Docker-Image lokal auf dem Server...'
                 dir('frontend') {
-                    withCredentials([string(credentialsId: 'DOCKERHUB_USER', variable: 'DOCKER_USER')]) {
+                    withCredentials([string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER')]) {
                         sh '''
-                            # Usernamen komplett in Kleinbuchstaben wandeln
-                            DOCKER_USER_LOWER=$(echo "$DOCKER_USER" | tr '[:upper:]' '[:lower:]')
+                            # Wir holen den Wert direkt aus der Jenkins-Variable und wandeln ihn um
+                            DOCKER_USER_LOWER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
                             COMMIT_SHA=$(git rev-parse --short HEAD)
                             
-                            # WIR DEAKTIVIEREN BUILDKIT HIER ERZWUNGENERMASSEN (Setzen auf 0)
                             export DOCKER_BUILDKIT=0
                             
-                            docker build -t $DOCKER_USER_LOWER/secret-notes-frontend:$COMMIT_SHA -t $DOCKER_USER_LOWER/secret-notes-frontend:latest .
+                            # Wir bauen das Image mit der validierten Variable
+                            docker build -t ${DOCKER_USER_LOWER}/secret-notes-frontend:${COMMIT_SHA} -t ${DOCKER_USER_LOWER}/secret-notes-frontend:latest .
                         '''
                     }
                 }
             }
         }
 
+        // 5. DELIVER STAGE
         stage('Deliver to Docker Hub') {
             agent any 
             steps {
                 echo 'Logge bei Docker Hub ein und pushe die Images...'
                 dir('frontend') {
                     withCredentials([
-                        string(credentialsId: 'DOCKERHUB_USER', variable: 'DOCKER_USER'),
-                        string(credentialsId: 'DOCKERHUB_PASSWORD', variable: 'DOCKER_PASS')
+                        string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
+                        string(credentialsId: 'DOCKERHUB_PASSWORD', variable: 'RAW_PASS')
                     ]) {
                         sh '''
-                            DOCKER_USER_LOWER=$(echo "$DOCKER_USER" | tr '[:upper:]' '[:lower:]')
+                            DOCKER_USER_LOWER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
                             COMMIT_SHA=$(git rev-parse --short HEAD)
                             
-                            # Auch hier BuildKit sicherheitshalber aus
                             export DOCKER_BUILDKIT=0
                             
-                            # 1. Bei Docker Hub einloggen
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                            # 1. Bei Docker Hub einloggen (mit dem originalen RAW_USER)
+                            echo "$RAW_PASS" | docker login -u "$RAW_USER" --password-stdin
                             
                             # 2. Beide Tags zu Docker Hub pushen
-                            docker push $DOCKER_USER_LOWER/secret-notes-frontend:$COMMIT_SHA
-                            docker push $DOCKER_USER_LOWER/secret-notes-frontend:latest
+                            docker push ${DOCKER_USER_LOWER}/secret-notes-frontend:${COMMIT_SHA}
+                            docker push ${DOCKER_USER_LOWER}/secret-notes-frontend:latest
                             
                             # 3. Lokale Images löschen, um AWS-Speicher zu sparen
-                            docker rmi $DOCKER_USER_LOWER/secret-notes-frontend:$COMMIT_SHA
-                            docker rmi $DOCKER_USER_LOWER/secret-notes-frontend:latest
+                            docker rmi ${DOCKER_USER_LOWER}/secret-notes-frontend:${COMMIT_SHA}
+                            docker rmi ${DOCKER_USER_LOWER}/secret-notes-frontend:latest
                             
                             docker logout
                         '''
