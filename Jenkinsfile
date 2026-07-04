@@ -9,6 +9,7 @@ pipeline {
             }
         }
 
+        // 1. LINT: Holt sich den Node-Container
         stage('Lint') {
             agent {
                 docker { 
@@ -19,7 +20,7 @@ pipeline {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
                     sh 'rm -rf node_modules .npm-cache'
-                    sh 'export npm_config_cache=./.npm-cache && npm ci --no-audit'
+                    sh 'npm ci --no-audit --no-cache'
                     sh 'npm run lint'
                 }
             }
@@ -48,22 +49,17 @@ pipeline {
         stage('SonarQube Analysis') {
             agent {
                 docker {
-                    // Das offizielle, schlanke SonarQube-Scanner Image
                     image 'sonarsource/sonar-scanner-cli:latest'
                 }
             }
             environment {
-                // Holt das Token aus dem Jenkins-Tresor
                 SONAR_TOKEN = credentials('SONAR_TOKEN')
-                // HIER DEINE ECHTE SONARQUBE-URL EINTRAGEN (z.B. http://123.45.67.89:9000)
-                SONAR_HOST_URL = 'http://DEINE-SONARQUBE-IP:9000'
-                // Zwingt den Scanner, im Workspace zu arbeiten (behebt Rechteprobleme)
+                SONAR_HOST_URL = credentials('SONAR_HOST_URL')
                 HOME = "${WORKSPACE}/frontend"
             }
             steps {
                 echo 'Sende Daten an SonarQube...'
                 dir('frontend') {
-                    // Führt den Scan aus. Wir definieren den Projektschlüssel direkt im Befehl.
                     sh '''
                         sonar-scanner \
                         -Dsonar.projectKey=secret-notes-frontend \
