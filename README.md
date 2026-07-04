@@ -44,6 +44,6 @@ To prevent over-use of shared runner, small modifications will be done in branch
 | **Deliver** (DockerHub)                | ✅             | ❌ |
 | **Check** if both artefacts are ready  | ❌             | ❌ |
 | **Deploy** to passive (Blue/Green-AWS) | ❌             | ❌ |
-| - k6 (performance testing)             | ❌             | ❌ |
-| - Playwright (End-to-End testing)      | ❌             | ❌ |
+| - k6 (performance testing)             | ⏳             | ❌ |
+| - Playwright (End-to-End testing)      | ⏳             | ❌ |
 | **Switch** Blue/Green if passed        | ❌             | ❌ |
