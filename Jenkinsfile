@@ -2,7 +2,6 @@ pipeline {
     agent any 
 
     stages {
-        // 0. SÄUBERUNG: Läuft jetzt sicher auf dem Server, ohne Jenkins zu verwirren
         stage('Säubern & Vorbereiten') {
             steps {
                 cleanWs()
@@ -10,20 +9,17 @@ pipeline {
             }
         }
 
-        // 1. LINT: Holt sich den Node-Container NUR für diesen Stage
         stage('Lint') {
             agent {
                 docker { 
                     image 'node:20-alpine'
-                    // Der npm-Cache wird sicher im Home des Containers abgelegt
-                    args '-e HOME=/home/node' 
+                    args '-e npm_config_cache=/var/lib/jenkins/workspace/ConnintFrontend@2/frontend/.npm-cache'
                 }
             }
             steps {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
-                    // Kein 'rm -rf' mehr nötig, da der Workspace komplett leer gestartet ist!
-                    sh 'npm ci --no-audit'
+                    sh 'npm ci --cache ./.npm-cache --no-audit'
                     sh 'npm run lint'
                 }
             }
