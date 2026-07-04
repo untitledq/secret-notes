@@ -20,6 +20,14 @@ pipeline {
         stage('Snyk Security Scan') {
             steps {
                 echo 'Scanne Abhängigkeiten mit Snyk...'
+                dir('frontend') {
+                    withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
+                        sh 'npm ci --cache .npm-cache'
+                        sh 'npm install -g snyk'
+                        sh 'snyk auth $SNYK_TOKEN'
+                        sh 'snyk test --all-projects'
+                    }
+                }
             }
         }
 
