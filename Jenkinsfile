@@ -96,7 +96,6 @@ pipeline {
             }
         }
 
-        // 4. BUILD
         stage('Build Docker Image') {
             agent any
             steps {
@@ -108,7 +107,9 @@ pipeline {
                             DOCKER_USER_LOWER=$(echo "$DOCKER_USER" | tr '[:upper:]' '[:lower:]')
                             COMMIT_SHA=$(git rev-parse --short HEAD)
                             
-                            # Wir nutzen den normalen Docker-Builder ohne das BuildKit-Flag
+                            # WIR DEAKTIVIEREN BUILDKIT HIER ERZWUNGENERMASSEN (Setzen auf 0)
+                            export DOCKER_BUILDKIT=0
+                            
                             docker build -t $DOCKER_USER_LOWER/secret-notes-frontend:$COMMIT_SHA -t $DOCKER_USER_LOWER/secret-notes-frontend:latest .
                         '''
                     }
@@ -116,7 +117,6 @@ pipeline {
             }
         }
 
-        // 5. DELIVER
         stage('Deliver to Docker Hub') {
             agent any 
             steps {
@@ -129,6 +129,9 @@ pipeline {
                         sh '''
                             DOCKER_USER_LOWER=$(echo "$DOCKER_USER" | tr '[:upper:]' '[:lower:]')
                             COMMIT_SHA=$(git rev-parse --short HEAD)
+                            
+                            # Auch hier BuildKit sicherheitshalber aus
+                            export DOCKER_BUILDKIT=0
                             
                             # 1. Bei Docker Hub einloggen
                             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
