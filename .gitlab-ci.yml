@@ -157,18 +157,18 @@ lint-frontend:
     # intentionally weak / nonblocking for now
     - tidy -q -e index.html || true
 
-#snyk-frontend:    # snyk requires dependencies - frontend is to simple by now
-#  stage: snyk
-#  image: node:20
-#  rules:
-#    - if: '$CI_COMMIT_BRANCH == "main"'
-#  script:
-#    - echo "Snyk test frontend"
-#    - cd frontend
-#    - npm ci
-#    - npm install -g snyk
-#    - snyk auth $SNYK_TOKEN
-#    - snyk test
+snyk-frontend:
+  stage: snyk
+  image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - echo "Snyk test frontend"
+    - cd frontend
+    - npm ci
+    - npm install -g snyk
+    - snyk auth $SNYK_TOKEN
+    - snyk test
 
 test-frontend:
   stage: test
