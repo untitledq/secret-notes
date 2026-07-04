@@ -102,18 +102,13 @@ pipeline {
             steps {
                 echo 'Baue das Docker-Image lokal auf dem Server...'
                 dir('frontend') {
-                    withCredentials([string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER')]) {
-                        sh '''
-                            # Wir holen den Wert direkt aus der Jenkins-Variable und wandeln ihn um
-                            DOCKER_USER_LOWER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
-                            COMMIT_SHA=$(git rev-parse --short HEAD)
-                            
-                            export DOCKER_BUILDKIT=0
-                            
-                            # Wir bauen das Image mit der validierten Variable
-                            docker build -t ${DOCKER_USER_LOWER}/secret-notes-frontend:${COMMIT_SHA} -t ${DOCKER_USER_LOWER}/secret-notes-frontend:latest .
-                        '''
-                    }
+                    sh '''
+                        COMMIT_SHA=$(git rev-parse --short HEAD)
+                        export DOCKER_BUILDKIT=0
+                        
+                        # Wir bauen das Image mit einem festen, sicheren lokalen Namen ohne Variablen!
+                        docker build -t local-frontend:$COMMIT_SHA -t local-frontend:latest .
+                    '''
                 }
             }
         }
@@ -131,18 +126,22 @@ pipeline {
                         sh '''
                             DOCKER_USER_LOWER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
                             COMMIT_SHA=$(git rev-parse --short HEAD)
-                            
                             export DOCKER_BUILDKIT=0
                             
-                            # 1. Bei Docker Hub einloggen (mit dem originalen RAW_USER)
+                            # 1. Bei Docker Hub einloggen
                             echo "$RAW_PASS" | docker login -u "$RAW_USER" --password-stdin
                             
-                            # 2. Beide Tags zu Docker Hub pushen
-                            docker push ${DOCKER_USER_LOWER}/secret-notes-frontend:${COMMIT_SHA}
+                            # 2. Die lokalen Images erst HIER für Docker Hub verknüpfen (Tagging)
+                            docker tag local-frontend:$COMMIT_SHA ${DOCKER_USER_LOWER}/secret-notes-frontend:$COMMIT_SHA
+                            docker tag local-frontend:latest ${DOCKER_USER_LOWER}/secret-notes-frontend:latest
+                            
+                            # 3. Beide Tags zu Docker Hub pushen
+                            docker push ${DOCKER_USER_LOWER}/secret-notes-frontend:$COMMIT_SHA
                             docker push ${DOCKER_USER_LOWER}/secret-notes-frontend:latest
                             
-                            # 3. Lokale Images löschen, um AWS-Speicher zu sparen
-                            docker rmi ${DOCKER_USER_LOWER}/secret-notes-frontend:${COMMIT_SHA}
+                            # 4. Alle lokalen Images rückstandslos löschen
+                            docker rmi local-frontend:$COMMIT_SHA local-frontend:latest
+                            docker rmi ${DOCKER_USER_LOWER}/secret-notes-frontend:$COMMIT_SHA
                             docker rmi ${DOCKER_USER_LOWER}/secret-notes-frontend:latest
                             
                             docker logout
