@@ -13,15 +13,14 @@ pipeline {
                 checkout scm
             }
         }
-
+        
         // 1. LINT
         stage('Lint') {
             steps {
                 echo 'Führe Linter aus...'
                 dir('frontend') {
-                    // Wir legen den Cache explizit lokal in den Workspace. 
-                    // Das ist zu 100% sicher vor Rechteproblemen!
-                    sh 'npm ci --cache ./.npm-cache --no-audit'
+                    sh 'rm -rf node_modules .npm-cache'
+                    sh 'npm ci --cache .npm-cache'
                     sh 'npm run lint'
                 }
             }
