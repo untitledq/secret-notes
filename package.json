@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "e2e": "node ./node_modules/@playwright/test/cli.js test",
+    "e2e:compose": "powershell -ExecutionPolicy Bypass -File scripts/run-playwright-compose.ps1"
+  },
   "dependencies": {
     "gsap": "^3.15.0",
     "lucide-static": "^1.23.0"

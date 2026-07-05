@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node src/server.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "lint": "eslint ."
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --runInBand",
+    "lint": "node ./node_modules/eslint/bin/eslint.js ."
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
