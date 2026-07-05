@@ -1,5 +1,4 @@
 import { APP_CONFIG } from './config.js';
-const baseUrl = APP_CONFIG.API_URL;
 
 function renderAppDom() {
   document.body.innerHTML = `
@@ -77,7 +76,7 @@ describe("Secret Notes frontend", () => {
   beforeEach(() => {
     jest.resetModules();
     window.APP_CONFIG = {
-      API_URL: "http://localhost:3000"
+      API_URL: APP_CONFIG.API_URL
     };
     
     renderAppDom();
