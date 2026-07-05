@@ -13,9 +13,11 @@ pipeline {
         stage('Lint') {
             when {
                 beforeAgent true
-                anyOf {
-                    branch 'main'
-                    branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'main' || 
+                        env.BRANCH_NAME == 'deploy/production' || 
+                        env.GIT_BRANCH?.contains('main') || 
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -43,9 +45,11 @@ pipeline {
         stage('Snyk Security Scan') {
             when {
                 beforeAgent true
-                anyOf {
-                    branch 'main'
-                    branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'main' || 
+                        env.BRANCH_NAME == 'deploy/production' || 
+                        env.GIT_BRANCH?.contains('main') || 
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -69,9 +73,11 @@ pipeline {
         stage('Unit Tests & Coverage') {
             when {
                 beforeAgent true
-                anyOf {
-                    branch 'main'
-                    branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'main' || 
+                        env.BRANCH_NAME == 'deploy/production' || 
+                        env.GIT_BRANCH?.contains('main') || 
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -95,9 +101,11 @@ pipeline {
         stage('SonarQube Analysis') {
             when {
                 beforeAgent true
-                anyOf {
-                    branch 'main'
-                    branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'main' || 
+                        env.BRANCH_NAME == 'deploy/production' || 
+                        env.GIT_BRANCH?.contains('main') || 
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -129,9 +137,11 @@ pipeline {
         stage('Build Docker Image') {
             when {
                 beforeAgent true
-                anyOf {
-                    branch 'main'
-                    branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'main' || 
+                        env.BRANCH_NAME == 'deploy/production' || 
+                        env.GIT_BRANCH?.contains('main') || 
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any
@@ -159,7 +169,10 @@ pipeline {
         stage('Deliver to Docker Hub') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
             agent any 
             steps {
@@ -205,7 +218,10 @@ pipeline {
         stage('Check Artefacts') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
             agent any
             steps {
@@ -232,9 +248,12 @@ pipeline {
         
         // 8. DEPLOY
         stage('Deploy to Passive (Blue/Green-AWS)') {
-            when {
+           when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
             agent any
             steps {
@@ -286,7 +305,10 @@ pipeline {
         stage('k6 Performance Testing') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
             steps {
                 echo 'Führe k6 Performance-Tests aus...'
@@ -297,7 +319,10 @@ pipeline {
         stage('Playwright E2E Testing') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
             steps {
                 echo 'Führe Playwright E2E-Tests aus...'
@@ -308,7 +333,10 @@ pipeline {
         stage('Switch Blue/Green') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
             steps {
                 echo 'Schalte Umgebung live...'
