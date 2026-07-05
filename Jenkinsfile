@@ -293,15 +293,19 @@ pipeline {
                         
                         # Verbindung zur Frontend-EC2-Instanz herstellen
                         ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
-                            set -e # Bricht bei Fehlern sofort ab
+                            set -e
 
+                            # 1. Login bei Docker Hub
                             echo '$RAW_TOKEN' | docker login -u '$RAW_USER' --password-stdin
                             
+                            # 2. Alten Container stoppen und löschen
                             docker stop frontend-passive || true
                             docker rm frontend-passive || true
                             
+                            # 3. Neues Image von Docker Hub ziehen
                             docker pull ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
                             
+                            # 4. Container auf Port 8081 starten
                             docker run -d \\
                               --name frontend-passive \\
                               -p ${PASSIVE_FE_PORT}:80 \\
@@ -309,11 +313,18 @@ pipeline {
                               ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
                               
                             echo 'Warte kurz auf den Container-Start...'
-                            # sleep 2
+                            sleep 2
                             
-                            # Sauber escaped ohne doppelte Backslashes, schreibt direkt ins Nginx-HTML-Verzeichnis
-                            # docker exec frontend-passive sh -c 'echo \"window.APP_CONFIG = { API_URL: \\"http://'${BACKEND_IP}':3001\\" };\" > /usr/share/nginx/html/config.js'
+                            # 5. DIE NEUE LÖSUNG: Datei auf der EC2 erstellen (ohne Verschachtelungs-Stress)
+                            echo 'window.APP_CONFIG = { API_URL: \"http://'${BACKEND_IP}':3001\" };' > /home/ubuntu/config.js
                             
+                            # 6. Datei blind in den Container kopieren
+                            docker cp /home/ubuntu/config.js frontend-passive:/usr/share/nginx/html/config.js
+                            
+                            # 7. Temporäre Datei auf der EC2 löschen
+                            rm /home/ubuntu/config.js
+                            
+                            # 8. Logout
                             docker logout
                         "
                         echo "Passive Umgebung läuft jetzt mit dem neuen Frontend (Version $COMMIT_SHA) auf Port $PASSIVE_FE_PORT und funkt an Backend $BACKEND_IP:3001!"
