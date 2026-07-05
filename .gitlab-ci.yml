@@ -113,7 +113,6 @@ build-backend:
   services:
     - docker:dind
   rules:
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
@@ -133,7 +132,6 @@ deliver-backend:
     - docker:dind
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     # Pull from GitLab registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
