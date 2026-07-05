@@ -1,5 +1,3 @@
-import { APP_CONFIG } from './config.js';
-
 function renderAppDom() {
   document.body.innerHTML = `
     <div class="icon-background" aria-hidden="true">
@@ -75,8 +73,10 @@ async function flushAsyncWork() {
 describe("Secret Notes frontend", () => {
   beforeEach(() => {
     jest.resetModules();
+    const config = require('./config.json');
+
     window.APP_CONFIG = {
-      API_URL: APP_CONFIG.API_URL
+      API_URL: config.API_URL
     };
     
     renderAppDom();
