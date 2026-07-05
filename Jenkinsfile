@@ -15,7 +15,7 @@ pipeline {
                 beforeAgent true
                 anyOf {
                     branch 'main'
-                    branch 'deploy/production'
+                    branch 'feature/jenkins'
                 }
             }
             agent {
@@ -45,7 +45,7 @@ pipeline {
                 beforeAgent true
                 anyOf {
                     branch 'main'
-                    branch 'deploy/production'
+                    branch 'feature/jenkins'
                 }
             }
             agent {
@@ -71,7 +71,7 @@ pipeline {
                 beforeAgent true
                 anyOf {
                     branch 'main'
-                    branch 'deploy/production'
+                    branch 'feature/jenkins'
                 }
             }
             agent {
@@ -97,7 +97,7 @@ pipeline {
                 beforeAgent true
                 anyOf {
                     branch 'main'
-                    branch 'deploy/production'
+                    branch 'feature/jenkins'
                 }
             }
             agent {
@@ -131,7 +131,7 @@ pipeline {
                 beforeAgent true
                 anyOf {
                     branch 'main'
-                    branch 'deploy/production'
+                    branch 'feature/jenkins'
                 }
             }
             agent any
@@ -159,7 +159,7 @@ pipeline {
         stage('Deliver to Docker Hub') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                branch 'feature/jenkins'
             }
             agent any 
             steps {
@@ -205,7 +205,7 @@ pipeline {
         stage('Check Artefacts') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                branch 'feature/jenkins'
             }
             agent any
             steps {
@@ -229,12 +229,12 @@ pipeline {
                 }
             }
         }
-        
+
         // 8. DEPLOY
         stage('Deploy to Passive (Blue/Green-AWS)') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                branch 'feature/jenkins'
             }
             agent any
             steps {
@@ -286,7 +286,7 @@ pipeline {
         stage('k6 Performance Testing') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                branch 'feature/jenkins'
             }
             steps {
                 echo 'Führe k6 Performance-Tests aus...'
@@ -297,7 +297,7 @@ pipeline {
         stage('Playwright E2E Testing') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                branch 'feature/jenkins'
             }
             steps {
                 echo 'Führe Playwright E2E-Tests aus...'
@@ -308,7 +308,7 @@ pipeline {
         stage('Switch Blue/Green') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                branch 'feature/jenkins'
             }
             steps {
                 echo 'Schalte Umgebung live...'
