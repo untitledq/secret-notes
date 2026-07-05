@@ -6,22 +6,78 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<div class="icon-background" aria-hidden="true">
+  <div class="icon-escalator icon-escalator-a"></div>
+  <div class="icon-escalator icon-escalator-b"></div>
+</div>
 <div class="container">
   <h1>Secret Notes</h1>
 
-  <label for="note">Note</label>
-  <textarea id="note" placeholder="Enter your secret note"></textarea>
-
-  <label for="key">Encryption key</label>
-  <input id="key" type="password" placeholder="Encryption key" />
-
-  <div class="actions">
-    <button id="saveButton" onclick="saveNote()">Save</button>
-    <button onclick="loadNote()">Load</button>
+  <div class="tabs" role="tablist" aria-label="Secret note actions">
+    <button id="createTab" class="tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="createPanel">Create</button>
+    <button id="loadTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="loadPanel">Load</button>
   </div>
 
-  <label for="noteId">Note ID</label>
-  <input id="noteId" placeholder="Note ID (for retrieval)" />
+  <section id="createPanel" class="tab-panel" role="tabpanel" aria-labelledby="createTab">
+    <label for="createNote">Note</label>
+    <div id="createNoteVault" class="note-vault">
+      <textarea id="createNote" placeholder="Enter your secret note"></textarea>
+      <div id="createVaultOverlay" class="vault-overlay encrypt-overlay" aria-hidden="true">
+        <div class="vault-door vault-door-left"></div>
+        <div class="vault-door vault-door-right"></div>
+        <div class="vault-line"></div>
+        <div class="love-envelope-back"></div>
+        <div class="love-envelope-flap"></div>
+        <div class="love-envelope-front"></div>
+        <div class="vault-lock">
+          <div class="lock-shackle"></div>
+          <div class="lock-body">
+            <div class="lock-keyhole"></div>
+          </div>
+        </div>
+        <div class="heart-sticker">&hearts;</div>
+      </div>
+    </div>
+
+    <label for="createKey">Encryption key</label>
+    <input id="createKey" type="password" placeholder="Encryption key" />
+
+    <div class="actions">
+      <button id="saveButton" onclick="saveNote()">Save</button>
+    </div>
+  </section>
+
+  <section id="loadPanel" class="tab-panel is-hidden" role="tabpanel" aria-labelledby="loadTab">
+    <label for="loadNoteId">Note ID</label>
+    <input id="loadNoteId" placeholder="Note ID" />
+
+    <label for="loadKey">Encryption key</label>
+    <input id="loadKey" type="password" placeholder="Encryption key" />
+
+    <label for="loadNoteContent">Note</label>
+    <div id="loadNoteVault" class="note-vault is-locked">
+      <textarea id="loadNoteContent" placeholder="Loaded note" readonly></textarea>
+      <div id="vaultOverlay" class="vault-overlay" aria-hidden="true">
+        <div class="vault-door vault-door-left"></div>
+        <div class="vault-door vault-door-right"></div>
+        <div class="vault-line"></div>
+        <div class="love-envelope-back"></div>
+        <div class="love-envelope-flap"></div>
+        <div class="love-envelope-front"></div>
+        <div class="vault-lock">
+          <div class="lock-shackle"></div>
+          <div class="lock-body">
+            <div class="lock-keyhole"></div>
+          </div>
+        </div>
+        <div class="heart-sticker">&hearts;</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button onclick="loadNote()">Load</button>
+    </div>
+  </section>
 
   <pre id="output" role="status" aria-live="polite"></pre>
 </div>
@@ -32,7 +88,7 @@
         defaults: '2026-05-30'
     })
 </script>
-</script>
+<script src="vendor/gsap.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

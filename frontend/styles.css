@@ -5,6 +5,7 @@ body {
     display: flex;
     justify-content: center;
     margin-top: 40px;
+    overflow-x: hidden;
 }
 
 body.experiment-bg-beige {
@@ -13,11 +14,66 @@ body.experiment-bg-beige {
 }
 
 .container {
+    position: relative;
+    z-index: 1;
     width: 400px;
     background: #1e293b;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.icon-background {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.icon-escalator {
+    position: absolute;
+    left: 0;
+    display: flex;
+    width: max-content;
+    opacity: 0.16;
+    transform: translateX(0);
+}
+
+.icon-loop {
+    display: flex;
+    gap: 46px;
+    padding-right: 46px;
+}
+
+.icon-loop img {
+    width: 36px;
+    height: 36px;
+    filter: invert(78%) sepia(78%) saturate(428%) hue-rotate(172deg) brightness(101%) contrast(94%);
+    transform: rotate(-16deg);
+}
+
+.icon-escalator-a {
+    top: 18%;
+}
+
+.icon-escalator-b {
+    top: 72%;
+    opacity: 0.1;
+}
+
+body.experiment-bg-beige .icon-loop img {
+    filter: invert(31%) sepia(54%) saturate(729%) hue-rotate(355deg) brightness(84%) contrast(86%);
+}
+
+@keyframes iconEscalatorFallback {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-50%);
+    }
 }
 
 .container.experiment-container-brown {
@@ -26,6 +82,37 @@ body.experiment-bg-beige {
 
 h1 {
     text-align: center;
+}
+
+.tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.tab-button {
+    background: #334155;
+    color: #cbd5e1;
+}
+
+.tab-button.is-active {
+    background: #64748b;
+    color: #f8fafc;
+}
+
+.experiment-container-brown .tab-button {
+    background: #3f2a12;
+    color: #f3eadb;
+}
+
+.experiment-container-brown .tab-button.is-active {
+    background: #7a541f;
+    color: #fff7ed;
+}
+
+.tab-panel.is-hidden {
+    display: none;
 }
 
 textarea {
@@ -44,6 +131,205 @@ input {
     padding: 8px;
     border-radius: 4px;
     border: none;
+}
+
+textarea[readonly] {
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+.note-vault {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.note-vault textarea {
+    box-sizing: border-box;
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.vault-overlay {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.encrypt-overlay {
+    display: none;
+}
+
+.vault-door {
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    background: #0f172a;
+    border: 1px solid #334155;
+    box-sizing: border-box;
+    z-index: 1;
+}
+
+.vault-door-left {
+    left: 0;
+    border-right: none;
+}
+
+.vault-door-right {
+    right: 0;
+    border-left: none;
+}
+
+.vault-line {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: #64748b;
+    transform: translateX(-50%);
+    z-index: 2;
+}
+
+.vault-lock {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 42px;
+    height: 46px;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+}
+
+.lock-shackle {
+    position: absolute;
+    left: 8px;
+    top: 0;
+    width: 26px;
+    height: 24px;
+    border: 5px solid #cbd5e1;
+    border-bottom: none;
+    border-radius: 16px 16px 0 0;
+    box-sizing: border-box;
+    transform-origin: left bottom;
+}
+
+.lock-body {
+    position: absolute;
+    left: 3px;
+    bottom: 0;
+    width: 36px;
+    height: 28px;
+    background: #38bdf8;
+    border-radius: 5px;
+    box-shadow: inset 0 -4px 0 rgba(15, 23, 42, 0.2);
+}
+
+.lock-keyhole {
+    position: absolute;
+    left: 50%;
+    top: 8px;
+    width: 7px;
+    height: 11px;
+    background: #0f172a;
+    border-radius: 999px 999px 3px 3px;
+    transform: translateX(-50%);
+}
+
+.heart-sticker {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #f8fafc;
+    color: #e11d48;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    line-height: 1;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.24);
+    transform: translate(-50%, -50%) rotate(-8deg);
+    z-index: 3;
+}
+
+.love-envelope-back,
+.love-envelope-flap,
+.love-envelope-front {
+    display: none;
+}
+
+.experiment-container-brown .vault-door {
+    display: none;
+}
+
+.experiment-container-brown .vault-line {
+    display: none;
+}
+
+.experiment-container-brown .vault-overlay {
+    perspective: 420px;
+}
+
+.experiment-container-brown .love-envelope-back {
+    position: absolute;
+    inset: 0;
+    display: block;
+    background: #f3eadb;
+    border: 1px solid #b98a52;
+    box-sizing: border-box;
+    z-index: 1;
+}
+
+.experiment-container-brown .love-envelope-flap {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block;
+    width: 100%;
+    height: 64%;
+    background: #ead6b8;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: top center;
+    z-index: 4;
+}
+
+.experiment-container-brown .love-envelope-front {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: block;
+    width: 100%;
+    height: 62%;
+    background:
+        linear-gradient(145deg, transparent 49%, #d9bd95 50%) left top / 50% 100% no-repeat,
+        linear-gradient(215deg, transparent 49%, #d9bd95 50%) right top / 50% 100% no-repeat,
+        #f3eadb;
+    z-index: 3;
+}
+
+.experiment-container-brown .vault-lock {
+    display: none;
+}
+
+.experiment-container-brown .heart-sticker {
+    display: flex;
+    top: 66%;
+    z-index: 6;
+}
+
+.experiment-container-brown #createNoteVault .heart-sticker {
+    left: 46%;
+    top: 50%;
+}
+
+.experiment-container-brown textarea[readonly] {
+    background: #fff7ed;
+    color: #34220c;
 }
 
 .actions {
@@ -67,15 +353,15 @@ button:hover {
 }
 
 .button-green {
-  background-color: #15803d;
-  border-color: #15803d;
-  color: white;
+    background-color: #15803d;
+    border-color: #15803d;
+    color: white;
 }
 
 .button-green:hover {
-  background-color: #0c4a23;
-  border-color: #0c4a23;
-  color: white;
+    background-color: #0c4a23;
+    border-color: #0c4a23;
+    color: white;
 }
 
 pre {

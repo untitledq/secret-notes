@@ -36,14 +36,14 @@ To prevent over-use of shared runner, small modifications will be done in branch
 
 | Stage                                  | Backend SaaS  | Frontend Jenkins/AWS      |
 |----------------------------------------|---------------|---------------------------|
-| **Lint**                               | ✅             | ❌ |
-| **Snyk**                               | ✅             | ❌ |
-| **SonarQube**                          | ✅             | ❌ |
-| **Test**                               | ✅             | ❌ |
-| **Build** (GitLab Regestry)            | ✅             | ❌ |
-| **Deliver** (DockerHub)                | ✅             | ❌ |
+| **Lint**                               | ✅             | ✅ |
+| **Snyk**                               | ✅             | ✅ |
+| **SonarQube**                          | ✅             | ✅ |
+| **Test**                               | ✅             | ✅ |
+| **Build** (GitLab Regestry)            | ✅             | ✅ |
+| **Deliver** (DockerHub)                | ✅             | ✅ |
 | **Check** if both artefacts are ready  | ❌             | ❌ |
 | **Deploy** to passive (Blue/Green-AWS) | ❌             | ❌ |
-| - k6 (performance testing)             | ❌             | ❌ |
-| - Playwright (End-to-End testing)      | ❌             | ❌ |
+| - k6 (performance testing)             | ⏳             | ❌ |
+| - Playwright (End-to-End testing)      | ⏳             | ❌ |
 | **Switch** Blue/Green if passed        | ❌             | ❌ |
