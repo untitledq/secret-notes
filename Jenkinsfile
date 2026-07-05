@@ -262,7 +262,7 @@ pipeline {
         
         // 8. DEPLOY
         stage('Deploy to Passive (Blue/Green-AWS)') {
-           when {
+            when {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
@@ -302,15 +302,17 @@ pipeline {
                             
                             docker pull ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
                             
-                            docker run -d \
-                              --name frontend-passive \
-                              -p ${PASSIVE_FE_PORT}:80 \
-                              --restart unless-stopped \
+                            docker run -d \\
+                              --name frontend-passive \\
+                              -p ${PASSIVE_FE_PORT}:80 \\
+                              --restart unless-stopped \\
                               ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
                               
                             echo 'Warte kurz auf den Container-Start...'
                             sleep 2
-                            docker exec frontend-passive sh -c \\"echo 'window.APP_CONFIG = { API_URL: \\"http://${BACKEND_IP}:3001\\" };' > config.js\\
+                            
+                            # Sauber escaped ohne doppelte Backslashes, schreibt direkt ins Nginx-HTML-Verzeichnis
+                            docker exec frontend-passive sh -c 'echo \"window.APP_CONFIG = { API_URL: \\"http://'${BACKEND_IP}':3001\\" };\" > /usr/share/nginx/html/config.js'
                             
                             docker logout
                         "
