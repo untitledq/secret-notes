@@ -1,5 +1,4 @@
-const { API_URL } = require('./config.json');
-const baseUrl = API_URL;
+const baseUrl = APP_CONFIG.API_URL;
 
 function renderAppDom() {
   document.body.innerHTML = `
