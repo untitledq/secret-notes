@@ -220,14 +220,15 @@ pipeline {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production')
+                        env.GIT_BRANCH?.contains('deploy/production') ||
+                        env.BRANCH_NAME == 'feature/jenkins' ||
+                        env.GIT_BRANCH?.contains('feature/jenkins')
                 }
             }
             agent any
             steps {
                 echo 'Prüfe über die Docker Hub API, ob das neue Frontend-Image existiert...'
                 dir('frontend') {
-                    // Wir laden User UND Token aus den Credentials für die API-Abfrage
                     withCredentials([
                         string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
                         string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN')
@@ -245,9 +246,9 @@ pipeline {
                             ).trim()
                             
                             if (statusCode == "200") {
-                                echo "✅ Erfolg: Das Image wurde auf Docker Hub gefunden und steht für das AWS-Deployment bereit!"
+                                echo "Erfolg: Das Image wurde auf Docker Hub gefunden und steht für das AWS-Deployment bereit!"
                             } else {
-                                error "❌ ABBRUCH: Version ${commitSha} wurde von der API blockiert oder nicht gefunden (Status: ${statusCode})."
+                                error "ABBRUCH: Version ${commitSha} wurde von der API blockiert oder nicht gefunden (Status: ${statusCode})."
                             }
                         }
                     }
@@ -261,7 +262,9 @@ pipeline {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production')
+                        env.GIT_BRANCH?.contains('deploy/production') ||
+                        env.BRANCH_NAME == 'feature/jenkins' ||
+                        env.GIT_BRANCH?.contains('feature/jenkins')
                 }
             }
             agent any
