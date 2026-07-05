@@ -1,5 +1,4 @@
-const config = require('./config.json');
-const baseUrl = config.API_URL;
+import { APP_CONFIG } from './config.js';
 
 function renderAppDom() {
   document.body.innerHTML = `
@@ -96,7 +95,7 @@ describe("Secret Notes frontend", () => {
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
 
-    expect(window.fetch).toHaveBeenCalledWith(`${baseUrl}/health`);
+    expect(window.fetch).toHaveBeenCalledWith(`${window.APP_CONFIG}/health`);
     expect(document.getElementById("output").textContent).toBe("Backend OK: ok");
   });
 
@@ -147,7 +146,7 @@ describe("Secret Notes frontend", () => {
 
     await window.saveNote();
 
-    expect(window.fetch).toHaveBeenCalledWith(`${baseUrl}/notes`, {
+    expect(window.fetch).toHaveBeenCalledWith(`${window.APP_CONFIG}/notes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -184,7 +183,7 @@ describe("Secret Notes frontend", () => {
     await window.loadNote();
 
     expect(window.fetch).toHaveBeenCalledWith(
-      `${baseUrl}/notes/9?passphrase=key%20with%20spaces%20%26%20symbols`
+      `${window.APP_CONFIG}/notes/9?passphrase=key%20with%20spaces%20%26%20symbols`
     );
     expect(document.getElementById("loadNoteContent").value).toBe("opened note");
     expect(document.getElementById("output").textContent).toBe("Note loaded successfully");
