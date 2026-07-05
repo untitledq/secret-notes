@@ -1,4 +1,5 @@
 import { APP_CONFIG } from './config.js';
+const baseUrl = APP_CONFIG.API_URL;
 
 function renderAppDom() {
   document.body.innerHTML = `
@@ -183,7 +184,7 @@ describe("Secret Notes frontend", () => {
     await window.loadNote();
 
     expect(window.fetch).toHaveBeenCalledWith(
-      `${baseUrl}:3001/notes/9?passphrase=key%20with%20spaces%20%26%20symbols`
+      `${baseUrl}/notes/9?passphrase=key%20with%20spaces%20%26%20symbols`
     );
     expect(document.getElementById("loadNoteContent").value).toBe("opened note");
     expect(document.getElementById("output").textContent).toBe("Note loaded successfully");
