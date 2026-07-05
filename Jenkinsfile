@@ -243,17 +243,20 @@ pipeline {
                 dir('frontend') {
                     script {
                         def commitSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                        echo "Suche nach lokalem Image: local-frontend:${commitSha}"
+                        def myUser = sh(script: "echo \$RAW_USER | tr '[:upper:]' '[:lower:]'", returnStdout: true).trim()
                         
-                        def imageExists = sh(
-                            script: "docker images -q local-frontend:${commitSha} | wc -l",
+                        echo "Prüfe auf Docker Hub nach Version: ${commitSha}"
+                        
+                        // Sendet eine Anfrage an Docker Hub. HTTP 200 bedeutet das Image ist online da.
+                        def statusCode = sh(
+                            script: "curl -s -o /dev/null -w '%{http_code}' https://hub.docker.com/v2/repositories/${myUser}/secret-notes-frontend/tags/${commitSha}/",
                             returnStdout: true
                         ).trim()
                         
-                        if (imageExists != "0") {
-                            echo "Erfolg: Passendes Frontend-Artefakt (Version ${commitSha}) ist lokal vorhanden!"
+                        if (statusCode == "200") {
+                            echo "✅ Erfolg: Das Frontend-Image wurde erfolgreich auf Docker Hub verifiziert!"
                         } else {
-                            error "ABBRUCH: Kein lokales Frontend-Image mit der Version ${commitSha} gefunden."
+                            error "❌ ABBRUCH: Version ${commitSha} wurde nicht auf Docker Hub gefunden (Status: ${statusCode})."
                         }
                     }
                 }
