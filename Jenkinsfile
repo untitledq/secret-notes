@@ -13,9 +13,11 @@ pipeline {
         stage('Lint') {
             when {
                 beforeAgent true
-                anyOf {
-                    branch 'main'
-                    branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'main' || 
+                        env.BRANCH_NAME == 'deploy/production' || 
+                        env.GIT_BRANCH?.contains('main') || 
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -43,9 +45,11 @@ pipeline {
         stage('Snyk Security Scan') {
             when {
                 beforeAgent true
-                anyOf {
-                    branch 'main'
-                    branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'main' || 
+                        env.BRANCH_NAME == 'deploy/production' || 
+                        env.GIT_BRANCH?.contains('main') || 
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -69,9 +73,11 @@ pipeline {
         stage('Unit Tests & Coverage') {
             when {
                 beforeAgent true
-                anyOf {
-                    branch 'main'
-                    branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'main' || 
+                        env.BRANCH_NAME == 'deploy/production' || 
+                        env.GIT_BRANCH?.contains('main') || 
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -95,9 +101,11 @@ pipeline {
         stage('SonarQube Analysis') {
             when {
                 beforeAgent true
-                anyOf {
-                    branch 'main'
-                    branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'main' || 
+                        env.BRANCH_NAME == 'deploy/production' || 
+                        env.GIT_BRANCH?.contains('main') || 
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -129,9 +137,11 @@ pipeline {
         stage('Build Docker Image') {
             when {
                 beforeAgent true
-                anyOf {
-                    branch 'main'
-                    branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'main' || 
+                        env.BRANCH_NAME == 'deploy/production' || 
+                        env.GIT_BRANCH?.contains('main') || 
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any
@@ -159,7 +169,10 @@ pipeline {
         stage('Deliver to Docker Hub') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
             agent any 
             steps {
@@ -197,29 +210,94 @@ pipeline {
                         '''
                     }
                 }
-                echo 'Frontend erfolgreich via Token auf Docker Hub bereitgestellt! 🚀'
+                echo 'Frontend erfolgreich via Token auf Docker Hub bereitgestellt!'
             }
         }
 
-        // 7. CHECK
+        // 7. CHECK ARTEFACTS (Sicherstellen, dass das neue Frontend-Image existiert)
         stage('Check Artefacts') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
+            agent any
             steps {
-                echo 'Prüfe, ob auch das Backend-Artefakt bereit ist...'
+                echo 'Prüfe, ob das lokal gebaute Frontend-Image die korrekte Versionsnummer hat...'
+                dir('frontend') {
+                    script {
+                        def commitSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                        echo "Suche nach lokalem Image: local-frontend:${commitSha}"
+                        
+                        def imageExists = sh(
+                            script: "docker images -q local-frontend:${commitSha} | wc -l",
+                            returnStdout: true
+                        ).trim()
+                        
+                        if (imageExists != "0") {
+                            echo "Erfolg: Passendes Frontend-Artefakt (Version ${commitSha}) ist lokal vorhanden!"
+                        } else {
+                            error "ABBRUCH: Kein lokales Frontend-Image mit der Version ${commitSha} gefunden."
+                        }
+                    }
+                }
             }
         }
-
-        // 8. DEPLOY (Passive Umgebung)
+        
+        // 8. DEPLOY
         stage('Deploy to Passive (Blue/Green-AWS)') {
-            when {
+           when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
+            agent any
             steps {
-                echo 'Deploye Frontend auf die passive AWS-Umgebung...'
+                echo 'Deploye Frontend'
+                
+                withCredentials([
+                    file(credentialsId: 'FRONTEND_SSH_KEY', variable: 'KEY_PATH'),
+                    string(credentialsId: 'GREEN_EC2_IP', variable: 'PASSIVE_IP'),
+                    string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
+                    string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN')
+                ]) {
+                    sh '''
+                        COMMIT_SHA=$(git rev-parse --short HEAD)
+                        MY_USER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
+                        PASSIVE_FE_PORT=8081
+                        
+                        chmod 400 "$KEY_PATH"
+                        
+                        echo "Verbinde via SSH-Key-File mit passiver Umgebung unter IP: $PASSIVE_IP..."
+                        
+                        # Wir nutzen das extrahierte Secret $PASSIVE_IP für die Verbindung
+                        ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
+
+                            # 1. Auf der EC2-Instanz bei Docker Hub anmelden
+                            echo '$RAW_TOKEN' | docker login -u '$RAW_USER' --password-stdin
+                            
+                            # 2. Alten passiven Frontend-Container entfernen
+                            docker stop frontend-passive || true
+                            docker rm frontend-passive || true
+                            
+                            # 3. Das frisch gepushte Image ziehen
+                            docker pull ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
+                            
+                            # 4. Den neuen passiven Frontend-Container starten
+                            docker run -d \
+                              --name frontend-passive \
+                              -p ${PASSIVE_FE_PORT}:80 \
+                              ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
+                              
+                            docker logout
+                        "
+                        echo "Passive Umgebung läuft jetzt mit dem neuen Frontend (Version $COMMIT_SHA) auf Port $PASSIVE_FE_PORT!"
+                    '''
+                }
             }
         }
 
@@ -227,7 +305,10 @@ pipeline {
         stage('k6 Performance Testing') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
             steps {
                 echo 'Führe k6 Performance-Tests aus...'
@@ -238,7 +319,10 @@ pipeline {
         stage('Playwright E2E Testing') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
             steps {
                 echo 'Führe Playwright E2E-Tests aus...'
@@ -249,7 +333,10 @@ pipeline {
         stage('Switch Blue/Green') {
             when {
                 beforeAgent true
-                branch 'deploy/production'
+                expression { 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
+                }
             }
             steps {
                 echo 'Schalte Umgebung live...'
