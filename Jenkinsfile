@@ -11,6 +11,13 @@ pipeline {
 
         // 1. LINT: Holt sich den Node-Container
         stage('Lint') {
+            when {
+                beforeAgent true
+                anyOf {
+                    branch 'main'
+                    branch 'deploy/production'
+                }
+            }
             agent {
                 docker { 
                     image 'node:20-alpine'
@@ -34,6 +41,13 @@ pipeline {
 
         // 2. SNYK (Security Scan)
         stage('Snyk Security Scan') {
+            when {
+                beforeAgent true
+                anyOf {
+                    branch 'main'
+                    branch 'deploy/production'
+                }
+            }
             agent {
                 docker { 
                     image 'snyk/snyk:node'
@@ -53,6 +67,13 @@ pipeline {
 
         // 3. UNIT TESTS
         stage('Unit Tests & Coverage') {
+            when {
+                beforeAgent true
+                anyOf {
+                    branch 'main'
+                    branch 'deploy/production'
+                }
+            }
             agent {
                 docker { 
                     image 'node:20-alpine'
@@ -71,6 +92,13 @@ pipeline {
 
         // 4. SONARQUBE
         stage('SonarQube Analysis') {
+            when {
+                beforeAgent true
+                anyOf {
+                    branch 'main'
+                    branch 'deploy/production'
+                }
+            }
             agent {
                 docker {
                     image 'sonarsource/sonar-scanner-cli:latest'
@@ -98,6 +126,13 @@ pipeline {
 
         // 4. BUILD
         stage('Build Docker Image') {
+            when {
+                beforeAgent true
+                anyOf {
+                    branch 'main'
+                    branch 'deploy/production'
+                }
+            }
             agent any
             steps {
                 echo 'Baue das Docker-Image lokal auf dem Server...'
@@ -112,7 +147,7 @@ pipeline {
                             export DOCKER_BUILDKIT=0
                             
                             # Wir bauen das Image lokal direkt mit dem richtigen Namen
-                            docker build -t local-frontend:$COMMIT_SHA -t local-frontend:latest .
+                            docker build -f Dockerfile -t local-frontend:$COMMIT_SHA -t local-frontend:latest ..
                         '''
                     }
                 }
@@ -121,6 +156,10 @@ pipeline {
 
         // 5. DELIVER STAGE
         stage('Deliver to Docker Hub') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
             agent any 
             steps {
                 echo 'Logge bei Docker Hub via Token ein und pushe die Images...'
@@ -163,6 +202,10 @@ pipeline {
 
         // 7. CHECK
         stage('Check Artefacts') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
             steps {
                 echo 'Prüfe, ob auch das Backend-Artefakt bereit ist...'
             }
@@ -170,6 +213,10 @@ pipeline {
 
         // 8. DEPLOY (Passive Umgebung)
         stage('Deploy to Passive (Blue/Green-AWS)') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
             steps {
                 echo 'Deploye Frontend auf die passive AWS-Umgebung...'
             }
@@ -177,6 +224,10 @@ pipeline {
 
         // 9. PERFORMANCE TESTING (k6)
         stage('k6 Performance Testing') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
             steps {
                 echo 'Führe k6 Performance-Tests aus...'
             }
@@ -184,6 +235,10 @@ pipeline {
 
         // 10. E2E TESTING (Playwright)
         stage('Playwright E2E Testing') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
             steps {
                 echo 'Führe Playwright E2E-Tests aus...'
             }
@@ -191,6 +246,10 @@ pipeline {
 
         // 11. SWITCH (Blue/Green)
         stage('Switch Blue/Green') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
             steps {
                 echo 'Schalte Umgebung live...'
             }

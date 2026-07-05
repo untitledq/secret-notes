@@ -29,6 +29,7 @@ lint-backend:
   image: node:20
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - cd backend
     - npm ci
@@ -39,6 +40,7 @@ snyk-backend:
   image: node:20
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - echo "Snyk test backend"
     - cd backend
@@ -54,6 +56,7 @@ sonar-backend:
     entrypoint: [""]
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
     GIT_DEPTH: "0"
@@ -77,6 +80,7 @@ test-backend:
   image: node:20
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
 
   services:
     - name: postgres:17.4-alpine3.21
@@ -104,6 +108,7 @@ build-backend:
     - docker:dind
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - echo "Build"
     - docker build -t secret-notes-backend:$CI_COMMIT_SHA ./backend
@@ -120,7 +125,7 @@ deliver-backend:
   services:
     - docker:dind
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     # Pull from GitLab registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
@@ -139,7 +144,7 @@ deliver-backend:
 # deploy-backend:
 #   stage: deploy
 #   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
+#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
 #   script:
 #     -
 
@@ -154,6 +159,7 @@ lint-frontend:
   image: node:20
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - cd frontend
     # basic HTML validation using tidy (lightweight, no Node project needed)
@@ -166,6 +172,7 @@ snyk-frontend:
   image: node:20
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - echo "Snyk test frontend"
     - npm ci
@@ -178,6 +185,7 @@ test-frontend:
   image: node:20
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - cd frontend
     # basic smoke check: file exists and is non-empty
@@ -189,11 +197,12 @@ build-frontend:
   image: docker:latest
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   services:
     - docker:dind
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/frontend:latest ./frontend
+    - docker build -f frontend/Dockerfile -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/frontend:latest .
     - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
     - docker push $CI_REGISTRY_IMAGE/frontend:latest
 
@@ -201,14 +210,14 @@ build-frontend:
 # deliver-frontend:    # should be done in jenkins for frontend
 #   stage: deliver
 #   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
+#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
 #   script:
 #     -
 
 # deploy-frontend:    # should be done in jenkins for frontend
 #   stage: deploy
 #   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
+#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
 #   script:
 #     -
 
@@ -276,6 +285,7 @@ notify-failure-slack:
   allow_failure: true
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - |
       curl -X POST -H 'Content-type: application/json' \
