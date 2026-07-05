@@ -14,12 +14,10 @@ pipeline {
             when {
                 beforeAgent true
                 expression { 
-                    return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins')
-                    /*return env.BRANCH_NAME == 'main' || 
+                    return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production')*/
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -48,12 +46,10 @@ pipeline {
             when {
                 beforeAgent true
                 expression { 
-                    return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins')
-                    /*return env.BRANCH_NAME == 'main' || 
+                    return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production')*/
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -78,12 +74,10 @@ pipeline {
             when {
                 beforeAgent true
                 expression { 
-                    return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins')
-                    /*return env.BRANCH_NAME == 'main' || 
+                    return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production')*/
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -107,13 +101,11 @@ pipeline {
         stage('SonarQube Analysis') {
             when {
                 beforeAgent true
-                expression { 
-                    return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins')
-                    /*return env.BRANCH_NAME == 'main' || 
+                expression {
+                    return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production')*/
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -146,12 +138,10 @@ pipeline {
             when {
                 beforeAgent true
                 expression { 
-                    return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins')
-                    /*return env.BRANCH_NAME == 'main' || 
+                    return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production')*/
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any
@@ -180,10 +170,8 @@ pipeline {
             when {
                 beforeAgent true
                 expression { 
-                    return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins')
-                    /*return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production')*/
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any 
@@ -231,8 +219,8 @@ pipeline {
             when {
                 beforeAgent true
                 expression { 
-                    return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins') 
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any
@@ -272,10 +260,8 @@ pipeline {
            when {
                 beforeAgent true
                 expression { 
-                    return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins')
-                    /*return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production')*/
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any
@@ -329,10 +315,8 @@ pipeline {
             when {
                 beforeAgent true
                 expression { 
-                    return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins')
-                    /*return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production')*/
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             steps {
@@ -345,10 +329,8 @@ pipeline {
             when {
                 beforeAgent true
                 expression { 
-                    return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins')
-                    /*return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production')*/
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             steps {
@@ -361,10 +343,8 @@ pipeline {
             when {
                 beforeAgent true
                 expression { 
-                    return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins')
-                    /*return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production')*/
+                    return env.BRANCH_NAME == 'deploy/production' ||
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             steps {
