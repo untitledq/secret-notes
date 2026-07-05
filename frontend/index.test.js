@@ -73,12 +73,17 @@ async function flushAsyncWork() {
 describe("Secret Notes frontend", () => {
   beforeEach(() => {
     jest.resetModules();
+    window.APP_CONFIG = {
+      API_URL: "http://localhost:3000"
+    };
+    
     renderAppDom();
     window.innerWidth = 1024;
     window.fetch = jest.fn();
     global.fetch = window.fetch;
     delete window.gsap;
     delete window.posthog;
+    
     require("./app.js");
   });
 
