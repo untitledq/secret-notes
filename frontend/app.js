@@ -1,6 +1,4 @@
-import { APP_CONFIG } from './config.js';
-
-const API_BASE = APP_CONFIG.API_URL;
+const API_BASE = "http://3.239.69.15:3001";
 const TEST_GROUP_UI_FLAG = "test-group-ui-flag";
 const CREATE_VAULT_SELECTOR = "#createNoteVault";
 const LOAD_VAULT_SELECTOR = "#loadNoteVault";
