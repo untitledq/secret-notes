@@ -280,7 +280,9 @@ build-frontend:
 
 performance-backend-k6:
   stage: performance
-  image: grafana/k6:latest
+  image:
+    name: grafana/k6:0.54.0
+    entrypoint: [""]
   needs:
     - deploy-backend-staging
   rules:
