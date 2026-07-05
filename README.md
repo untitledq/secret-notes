@@ -27,7 +27,7 @@ To prevent over-use of shared runner, small modifications will be done in branch
 | **Frontend (basic)**  | ✅|
 | **Code improvements** | ⏳ |
 | **PostHog Integration** | ✅ |
-| **RDS configuration for PostgreSQL (AWS)** | ❌ |
+| **RDS configuration for PostgreSQL (AWS)** | ✅ |
 | **Documentation (FHTW template)** | ❌ |
 
 ---
@@ -43,7 +43,7 @@ To prevent over-use of shared runner, small modifications will be done in branch
 | **Build** (GitLab Regestry)            | ✅             | ✅ |
 | **Deliver** (DockerHub)                | ✅             | ✅ |
 | **Check** if both artefacts are ready  | ❌             | ❌ |
-| **Deploy** to passive (Blue/Green-AWS) | ❌             | ❌ |
+| **Deploy** to passive (Blue/Green-AWS) | ⏳             | ❌ |
 | - k6 (performance testing)             | ⏳             | ❌ |
 | - Playwright (End-to-End testing)      | ⏳             | ❌ |
 | **Switch** Blue/Green if passed        | ❌             | ❌ |

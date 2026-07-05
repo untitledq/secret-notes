@@ -15,9 +15,7 @@ stages:
   - build
   - deliver
   - deploy
-  # Future stage for the semester project requirement:
-  # uncomment together with performance-backend after staging deploy exists.
-  # - performance
+  - performance
   - notify
 
 # =====================================================
@@ -149,13 +147,52 @@ deliver-backend:
 
 
 
-# deploy-backend:
-#   stage: deploy
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-#   script:
-#     -
+deploy-backend-staging:
+  stage: deploy
+  image: alpine:3.20
+  needs:
+    - deliver-backend
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  variables:
+    BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA"
+    BACKEND_CONTAINER_NAME: "secret-notes-backend"
+    BACKEND_PORT: "3000"
+  before_script:
+    - apk add --no-cache openssh-client
+    - test -n "$BACKEND_STAGING_DATABASE_URL" || (echo "BACKEND_STAGING_DATABASE_URL is missing" && exit 1)
+    - chmod 400 "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
+  script:
+    - |
+      ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "
+        set -e
 
+        docker pull $BACKEND_DOCKER_IMAGE
+
+        docker run --rm \
+          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
+          $BACKEND_DOCKER_IMAGE \
+          npx prisma migrate deploy
+
+        docker stop $BACKEND_CONTAINER_NAME || true
+        docker rm $BACKEND_CONTAINER_NAME || true
+
+        docker run -d \
+          --name $BACKEND_CONTAINER_NAME \
+          --restart unless-stopped \
+          -p $BACKEND_PORT:3000 \
+          -e NODE_ENV=production \
+          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
+          $BACKEND_DOCKER_IMAGE
+
+        sleep 5
+        curl -fsS http://localhost:$BACKEND_PORT/health
+      "
+  environment:
+    name: backend-staging
+    url: "http://$BACKEND_STAGING_EC2_HOST:3000"
 
 
 # =====================================================
@@ -183,6 +220,7 @@ snyk-frontend:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - echo "Snyk test frontend"
+    - cd frontend
     - npm ci
     - npm install -g snyk
     - snyk auth $SNYK_TOKEN
@@ -237,33 +275,27 @@ build-frontend:
 #     -
 
 # =====================================================
-# PERFORMANCE TESTING (k6) - draft for deploy/production
+# PERFORMANCE TESTING (k6) - AWS staging backend
 # =====================================================
-#
-# Required GitLab CI/CD variables before enabling this job:
-# - K6_BASE_URL: staging backend URL after deployment, e.g. https://staging-api.example.com
-#
-# Optional GitLab CI/CD variables:
-# - K6_VUS: virtual users, default in script is 1
-# - K6_DURATION: test duration, default in script is 30s
-# - K6_P95_THRESHOLD: max p95 response time in ms, default in script is 750
-# - K6_ERROR_RATE_THRESHOLD: max failed request rate, default in script is 0.01
-#
-# Note: the backend currently has a global rate limit of 5 requests per minute.
-# For real staging performance tests, either raise/disable that limit in staging
-# or keep K6_VUS/K6_DURATION very small to avoid expected 429 responses.
-#
-# performance-backend:
-#   stage: performance
-#   image: grafana/k6:latest
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-#   script:
-#     - k6 run --summary-export performance/k6/k6-summary.json performance/k6/notes-performance.js
-#   artifacts:
-#     when: always
-#     paths:
-#       - performance/k6/k6-summary.json
+
+performance-backend-k6:
+  stage: performance
+  image: grafana/k6:latest
+  needs:
+    - deploy-backend-staging
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  variables:
+    K6_VUS: "1"
+    K6_DURATION: "1s"
+    K6_P95_THRESHOLD: "1000"
+    K6_ERROR_RATE_THRESHOLD: "0.01"
+  script:
+    - K6_BASE_URL="http://$BACKEND_STAGING_EC2_HOST:3000" k6 run --summary-export performance/k6/k6-summary.json performance/k6/notes-performance.js
+  artifacts:
+    when: always
+    paths:
+      - performance/k6/k6-summary.json
 
 # =====================================================
 # E2E TESTING (Playwright) - draft for deploy/production
