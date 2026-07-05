@@ -101,7 +101,7 @@ pipeline {
         stage('SonarQube Analysis') {
             when {
                 beforeAgent true
-                expression { 
+                expression {
                     return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
@@ -133,7 +133,7 @@ pipeline {
             }
         }
 
-        // 4. BUILD
+        // 5. BUILD
         stage('Build Docker Image') {
             when {
                 beforeAgent true
@@ -165,7 +165,7 @@ pipeline {
             }
         }
 
-        // 5. DELIVER STAGE
+        // 6. DELIVER STAGE
         stage('Deliver to Docker Hub') {
             when {
                 beforeAgent true
@@ -225,21 +225,29 @@ pipeline {
             }
             agent any
             steps {
-                echo 'Prüfe, ob das lokal gebaute Frontend-Image die korrekte Versionsnummer hat...'
+                echo 'Prüfe über die Docker Hub API, ob das neue Frontend-Image existiert...'
                 dir('frontend') {
-                    script {
-                        def commitSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                        echo "Suche nach lokalem Image: local-frontend:${commitSha}"
-                        
-                        def imageExists = sh(
-                            script: "docker images -q local-frontend:${commitSha} | wc -l",
-                            returnStdout: true
-                        ).trim()
-                        
-                        if (imageExists != "0") {
-                            echo "Erfolg: Passendes Frontend-Artefakt (Version ${commitSha}) ist lokal vorhanden!"
-                        } else {
-                            error "ABBRUCH: Kein lokales Frontend-Image mit der Version ${commitSha} gefunden."
+                    withCredentials([
+                        string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
+                        string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN')
+                    ]) {
+                        script {
+                            def commitSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                            def myUser = sh(script: "echo \$RAW_USER | tr '[:upper:]' '[:lower:]'", returnStdout: true).trim()
+                            
+                            echo "Suche auf Docker Hub nach: ${myUser}/secret-notes-frontend:${commitSha}"
+                            
+                            // Wir nutzen "-u USER:TOKEN", damit Docker Hub uns die echte Antwort gibt
+                            def statusCode = sh(
+                                script: "curl -s -u \"\$RAW_USER:\$RAW_TOKEN\" -o /dev/null -w '%{http_code}' https://hub.docker.com/v2/repositories/${myUser}/secret-notes-frontend/tags/${commitSha}/",
+                                returnStdout: true
+                            ).trim()
+                            
+                            if (statusCode == "200") {
+                                echo "Erfolg: Das Image wurde auf Docker Hub gefunden und steht für das AWS-Deployment bereit!"
+                            } else {
+                                error "ABBRUCH: Version ${commitSha} wurde von der API blockiert oder nicht gefunden (Status: ${statusCode})."
+                            }
                         }
                     }
                 }
@@ -248,7 +256,7 @@ pipeline {
         
         // 8. DEPLOY
         stage('Deploy to Passive (Blue/Green-AWS)') {
-           when {
+            when {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
@@ -263,7 +271,8 @@ pipeline {
                     file(credentialsId: 'FRONTEND_SSH_KEY', variable: 'KEY_PATH'),
                     string(credentialsId: 'GREEN_EC2_IP', variable: 'PASSIVE_IP'),
                     string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
-                    string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN')
+                    string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN'),
+                    string(credentialsId: 'GREEN_EC2_IP_BACKEND', variable: 'BACKEND_IP')
                 ]) {
                     sh '''
                         COMMIT_SHA=$(git rev-parse --short HEAD)
@@ -274,28 +283,43 @@ pipeline {
                         
                         echo "Verbinde via SSH-Key-File mit passiver Umgebung unter IP: $PASSIVE_IP..."
                         
-                        # Wir nutzen das extrahierte Secret $PASSIVE_IP für die Verbindung
+                        # Verbindung zur Frontend-EC2-Instanz herstellen
                         ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
+                            set -e
 
-                            # 1. Auf der EC2-Instanz bei Docker Hub anmelden
+                            # 1. Login bei Docker Hub
                             echo '$RAW_TOKEN' | docker login -u '$RAW_USER' --password-stdin
                             
-                            # 2. Alten passiven Frontend-Container entfernen
+                            # 2. Alten Container stoppen und löschen
                             docker stop frontend-passive || true
                             docker rm frontend-passive || true
                             
-                            # 3. Das frisch gepushte Image ziehen
+                            # 3. Neues Image von Docker Hub ziehen
                             docker pull ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
                             
-                            # 4. Den neuen passiven Frontend-Container starten
-                            docker run -d \
-                              --name frontend-passive \
-                              -p ${PASSIVE_FE_PORT}:80 \
+                            # 4. Container auf Port 8081 starten
+                            docker run -d \\
+                              --name frontend-passive \\
+                              -p ${PASSIVE_FE_PORT}:80 \\
+                              --restart unless-stopped \\
                               ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
                               
+                            echo 'Warte kurz auf den Container-Start...'
+                            sleep 2
+                            
+                            # 5. DIE NEUE LÖSUNG: Datei auf der EC2 erstellen (ohne Verschachtelungs-Stress)
+                            echo 'window.APP_CONFIG = { API_URL: \"http://'${BACKEND_IP}':3001\" };' > /home/ubuntu/config.js
+                            
+                            # 6. Datei blind in den Container kopieren
+                            docker cp /home/ubuntu/config.js frontend-passive:/usr/share/nginx/html/config.js
+                            
+                            # 7. Temporäre Datei auf der EC2 löschen
+                            rm /home/ubuntu/config.js
+                            
+                            # 8. Logout
                             docker logout
                         "
-                        echo "Passive Umgebung läuft jetzt mit dem neuen Frontend (Version $COMMIT_SHA) auf Port $PASSIVE_FE_PORT!"
+                        echo "Passive Umgebung läuft jetzt mit dem neuen Frontend (Version $COMMIT_SHA) auf Port $PASSIVE_FE_PORT und funkt an Backend $BACKEND_IP:3001!"
                     '''
                 }
             }
