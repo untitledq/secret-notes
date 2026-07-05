@@ -93,7 +93,7 @@ describe("Secret Notes frontend", () => {
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
 
-    expect(window.fetch).toHaveBeenCalledWith("http://localhost:3000/health");
+    expect(window.fetch).toHaveBeenCalledWith("http://3.239.69.15:3001/health");
     expect(document.getElementById("output").textContent).toBe("Backend OK: ok");
   });
 
@@ -144,7 +144,7 @@ describe("Secret Notes frontend", () => {
 
     await window.saveNote();
 
-    expect(window.fetch).toHaveBeenCalledWith("http://localhost:3000/notes", {
+    expect(window.fetch).toHaveBeenCalledWith("http://3.239.69.15:3001/health", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -181,7 +181,7 @@ describe("Secret Notes frontend", () => {
     await window.loadNote();
 
     expect(window.fetch).toHaveBeenCalledWith(
-      "http://localhost:3000/notes/9?passphrase=key%20with%20spaces%20%26%20symbols"
+      "http://3.239.69.15:3001/notes/9?passphrase=key%20with%20spaces%20%26%20symbols"
     );
     expect(document.getElementById("loadNoteContent").value).toBe("opened note");
     expect(document.getElementById("output").textContent).toBe("Note loaded successfully");
