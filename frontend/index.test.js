@@ -144,7 +144,7 @@ describe("Secret Notes frontend", () => {
 
     await window.saveNote();
 
-    expect(window.fetch).toHaveBeenCalledWith("http://3.239.69.15:3001/health", {
+    expect(window.fetch).toHaveBeenCalledWith("http://3.239.69.15:3001/notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
