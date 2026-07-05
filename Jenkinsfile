@@ -310,7 +310,7 @@ pipeline {
                               
                             echo 'Warte kurz auf den Container-Start...'
                             sleep 2
-                            docker exec frontend-passive sh -c \\"echo 'window.APP_CONFIG = { API_URL: \\"http://${BACKEND_IP}:3001\\" };' > /usr/share/nginx/html/config.js\\"
+                            docker exec frontend-passive sh -c \\"echo 'window.APP_CONFIG = { API_URL: \\"http://${BACKEND_IP}:3001\\" };' > config.js\\
                             
                             docker logout
                         "
