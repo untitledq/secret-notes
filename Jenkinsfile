@@ -141,7 +141,7 @@ pipeline {
             }
         }
 
-        // 4. BUILD
+        // 5. BUILD
         stage('Build Docker Image') {
             when {
                 beforeAgent true
@@ -175,7 +175,7 @@ pipeline {
             }
         }
 
-        // 5. DELIVER STAGE
+        // 6. DELIVER STAGE
         stage('Deliver to Docker Hub') {
             when {
                 beforeAgent true
@@ -232,31 +232,35 @@ pipeline {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'feature/jenkins' || 
-                        env.GIT_BRANCH?.contains('feature/jenkins')
-                    /*return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production')*/
+                        env.GIT_BRANCH?.contains('feature/jenkins') 
                 }
             }
             agent any
             steps {
-                echo 'Prüfe, ob das lokal gebaute Frontend-Image die korrekte Versionsnummer hat...'
+                echo 'Prüfe über die Docker Hub API, ob das neue Frontend-Image existiert...'
                 dir('frontend') {
-                    script {
-                        def commitSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                        def myUser = sh(script: "echo \$RAW_USER | tr '[:upper:]' '[:lower:]'", returnStdout: true).trim()
-                        
-                        echo "Prüfe auf Docker Hub nach Version: ${commitSha}"
-                        
-                        // Sendet eine Anfrage an Docker Hub. HTTP 200 bedeutet das Image ist online da.
-                        def statusCode = sh(
-                            script: "curl -s -o /dev/null -w '%{http_code}' https://hub.docker.com/v2/repositories/${myUser}/secret-notes-frontend/tags/${commitSha}/",
-                            returnStdout: true
-                        ).trim()
-                        
-                        if (statusCode == "200") {
-                            echo "✅ Erfolg: Das Frontend-Image wurde erfolgreich auf Docker Hub verifiziert!"
-                        } else {
-                            error "❌ ABBRUCH: Version ${commitSha} wurde nicht auf Docker Hub gefunden (Status: ${statusCode})."
+                    // Wir laden User UND Token aus den Credentials für die API-Abfrage
+                    withCredentials([
+                        string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
+                        string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN')
+                    ]) {
+                        script {
+                            def commitSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                            def myUser = sh(script: "echo \$RAW_USER | tr '[:upper:]' '[:lower:]'", returnStdout: true).trim()
+                            
+                            echo "Suche auf Docker Hub nach: ${myUser}/secret-notes-frontend:${commitSha}"
+                            
+                            // Wir nutzen "-u USER:TOKEN", damit Docker Hub uns die echte Antwort gibt
+                            def statusCode = sh(
+                                script: "curl -s -u \"\$RAW_USER:\$RAW_TOKEN\" -o /dev/null -w '%{http_code}' https://hub.docker.com/v2/repositories/${myUser}/secret-notes-frontend/tags/${commitSha}/",
+                                returnStdout: true
+                            ).trim()
+                            
+                            if (statusCode == "200") {
+                                echo "✅ Erfolg: Das Image wurde auf Docker Hub gefunden und steht für das AWS-Deployment bereit!"
+                            } else {
+                                error "❌ ABBRUCH: Version ${commitSha} wurde von der API blockiert oder nicht gefunden (Status: ${statusCode})."
+                            }
                         }
                     }
                 }
