@@ -309,10 +309,10 @@ pipeline {
                               ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
                               
                             echo 'Warte kurz auf den Container-Start...'
-                            sleep 2
+                            # sleep 2
                             
                             # Sauber escaped ohne doppelte Backslashes, schreibt direkt ins Nginx-HTML-Verzeichnis
-                            docker exec frontend-passive sh -c 'echo \"window.APP_CONFIG = { API_URL: \\"http://'${BACKEND_IP}':3001\\" };\" > /usr/share/nginx/html/config.js'
+                            # docker exec frontend-passive sh -c 'echo \"window.APP_CONFIG = { API_URL: \\"http://'${BACKEND_IP}':3001\\" };\" > /usr/share/nginx/html/config.js'
                             
                             docker logout
                         "
