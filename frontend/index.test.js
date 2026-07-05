@@ -76,7 +76,7 @@ describe("Secret Notes frontend", () => {
     const config = require('./config.js');
 
     window.APP_CONFIG = {
-      API_URL: config.API_URL
+      API_URL: "http://3.239.69.15:3001"
     };
     
     renderAppDom();
