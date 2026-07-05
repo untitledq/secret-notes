@@ -43,10 +43,10 @@ snyk-backend:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - echo "Snyk test backend"
-    - test -n "$SNYK_TOKEN" || (echo "SNYK_TOKEN is missing" && exit 1)
     - cd backend
     - npm ci
     - npm install -g snyk
+    - snyk auth $SNYK_TOKEN
     - snyk test
 
 sonar-backend:
@@ -222,10 +222,10 @@ snyk-frontend:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - echo "Snyk test frontend"
-    - test -n "$SNYK_TOKEN" || (echo "SNYK_TOKEN is missing" && exit 1)
     - cd frontend
     - npm ci
     - npm install -g snyk
+    - snyk auth $SNYK_TOKEN
     - snyk test
 
 test-frontend:
@@ -343,11 +343,6 @@ notify-failure-slack:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - |
-      if [ -z "$SLACK_WEBHOOK_URL" ]; then
-        echo "SLACK_WEBHOOK_URL is missing; skipping Slack notification"
-        exit 0
-      fi
-
-      curl -fsS -X POST -H 'Content-type: application/json' \
+      curl -X POST -H 'Content-type: application/json' \
       --data "{\"text\":\"Pipeline failed: $CI_PROJECT_NAME / $CI_COMMIT_BRANCH\n$CI_PIPELINE_URL\"}" \
       "$SLACK_WEBHOOK_URL"
