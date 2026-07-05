@@ -147,7 +147,7 @@ pipeline {
                             export DOCKER_BUILDKIT=0
                             
                             # Wir bauen das Image lokal direkt mit dem richtigen Namen
-                            docker build -t local-frontend:$COMMIT_SHA -t local-frontend:latest .
+                            docker build -f Dockerfile -t local-frontend:$COMMIT_SHA -t local-frontend:latest ..
                         '''
                     }
                 }
