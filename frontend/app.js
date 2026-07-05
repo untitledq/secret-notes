@@ -1,5 +1,5 @@
-import { APP_CONFIG } from './config.js';
-const API_BASE = APP_CONFIG.API_URL;
+const { API_URL } = require('./config.json');
+const API_BASE = API_URL;
 const TEST_GROUP_UI_FLAG = "test-group-ui-flag";
 const CREATE_VAULT_SELECTOR = "#createNoteVault";
 const LOAD_VAULT_SELECTOR = "#loadNoteVault";
