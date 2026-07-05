@@ -73,7 +73,7 @@ async function flushAsyncWork() {
 describe("Secret Notes frontend", () => {
   beforeEach(() => {
     jest.resetModules();
-    const config = require('./config.json');
+    const config = require('./config.js');
 
     window.APP_CONFIG = {
       API_URL: config.API_URL
