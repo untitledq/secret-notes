@@ -94,7 +94,7 @@ describe("Secret Notes frontend", () => {
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
 
-    expect(window.fetch).toHaveBeenCalledWith(`${window.APP_CONFIG}/health`);
+    expect(window.fetch).toHaveBeenCalledWith(`${window.APP_CONFIG.API_URL}/health`);
     expect(document.getElementById("output").textContent).toBe("Backend OK: ok");
   });
 
