@@ -280,44 +280,34 @@ pipeline {
                     string(credentialsId: 'GREEN_EC2_IP', variable: 'PASSIVE_IP'),
                     string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
                     string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN'),
-                    // TIPP: Falls du die Backend-IP in Jenkins gespeichert hast, hier einkommentieren:
-                    // string(credentialsId: 'BACKEND_EC2_IP', variable: 'BACKEND_IP')
+                    string(credentialsId: 'GREEN_EC2_IP_BACKEND', variable: 'BACKEND_IP')
                 ]) {
                     sh '''
                         COMMIT_SHA=$(git rev-parse --short HEAD)
                         MY_USER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
                         PASSIVE_FE_PORT=8081
                         
-                        # Falls du BACKEND_IP nicht oben über withCredentials holst, 
-                        # trage deine echte Backend-EC2-IP einfach fest in die nächste Zeile ein:
-                        BACKEND_IP="<DEINE_REINE_BACKEND_EC2_IP>"
-                        
                         chmod 400 "$KEY_PATH"
                         
                         echo "Verbinde via SSH-Key-File mit passiver Umgebung unter IP: $PASSIVE_IP..."
                         
-                        # Wir nutzen das extrahierte Secret $PASSIVE_IP für die Verbindung
+                        # Verbindung zur Frontend-EC2-Instanz herstellen
                         ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
                             set -e # Bricht bei Fehlern sofort ab
 
-                            # 1. Auf der EC2-Instanz bei Docker Hub anmelden
                             echo '$RAW_TOKEN' | docker login -u '$RAW_USER' --password-stdin
                             
-                            # 2. Alten passiven Frontend-Container entfernen
                             docker stop frontend-passive || true
                             docker rm frontend-passive || true
                             
-                            # 3. Das frisch gepushte Image ziehen
                             docker pull ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
                             
-                            # 4. Den neuen passiven Frontend-Container starten
                             docker run -d \
                               --name frontend-passive \
                               -p ${PASSIVE_FE_PORT}:80 \
                               --restart unless-stopped \
                               ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
                               
-                            # 5. DIE MAGIE: config.js im laufenden Container mit dem passiven Backend (Port 3001) überschreiben!
                             echo 'Warte kurz auf den Container-Start...'
                             sleep 2
                             docker exec frontend-passive sh -c \\"echo 'window.APP_CONFIG = { API_URL: \\"http://${BACKEND_IP}:3001\\" };' > /usr/share/nginx/html/config.js\\"
