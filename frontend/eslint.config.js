@@ -4,6 +4,12 @@ import { defineConfig } from "eslint/config";
 import jest from "eslint-plugin-jest";
 
 export default defineConfig([
+  {
+    ignores: [
+      "coverage/**",
+      "node_modules/**"
+    ],
+  },
   js.configs.recommended,
   {
     files: ["**/*.js"],
@@ -11,6 +17,7 @@ export default defineConfig([
     languageOptions: {
       globals: {
         ...globals.browser,
+        gsap: "readonly",
         posthog: "readonly",
       },
     },
@@ -22,5 +29,13 @@ export default defineConfig([
   {
     files: ["**/*.test.js"],
     ...jest.configs["flat/recommended"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.commonjs,
+        ...globals.jest,
+        ...globals.node,
+      },
+    },
   },
 ]);

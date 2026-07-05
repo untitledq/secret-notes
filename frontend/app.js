@@ -18,7 +18,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         }
 
         showOutput(`Backend OK: ${data.status}`);
-    } catch (err) {
+    } catch {
         showOutput("Backend unreachable (network error)");
     }
 });
@@ -61,7 +61,7 @@ async function saveNote() {
         showOutput(`Stored. ID = ${data.id}`);
         document.getElementById("loadNoteId").value = data.id;
         playEncryptCloseAnimation();
-    } catch (err) {
+    } catch {
         showOutput("Network error while saving");
     }
 }
@@ -89,7 +89,7 @@ async function loadNote() {
         noteContent.value = data.content;
         playVaultOpenAnimation();
         showOutput("Note loaded successfully");
-    } catch (err) {
+    } catch {
         playVaultErrorAnimation();
         showOutput("Network error while loading");
     }
@@ -615,4 +615,20 @@ function applyTestGroupUIExperiment() {
         output.classList.toggle("experiment-output-brown", isTestGroup);
         refreshBackgroundIcons();
     });
+}
+
+if (typeof window !== "undefined") {
+    window.saveNote = saveNote;
+    window.loadNote = loadNote;
+    window.SecretNotes = {
+        applyTestGroupUIExperiment,
+        fillIconRow,
+        refreshBackgroundIcons,
+        resetEncryptVaultAnimation,
+        resetVaultAnimation,
+        safeJson,
+        setActiveTab,
+        setupTabs,
+        showOutput
+    };
 }
