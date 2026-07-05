@@ -15,6 +15,10 @@ stages:
   - build
   - deliver
   - deploy
+  # Future stage for the semester project requirement:
+  # uncomment together with performance-backend after staging deploy exists.
+  # - performance
+  - notify
 
 # =====================================================
 # BACKEND
@@ -25,6 +29,7 @@ lint-backend:
   image: node:20
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - cd backend
     - npm ci
@@ -35,6 +40,7 @@ snyk-backend:
   image: node:20
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - echo "Snyk test backend"
     - cd backend
@@ -50,6 +56,7 @@ sonar-backend:
     entrypoint: [""]
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
     GIT_DEPTH: "0"
@@ -73,6 +80,7 @@ test-backend:
   image: node:20
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
 
   services:
     - name: postgres:17.4-alpine3.21
@@ -100,6 +108,7 @@ build-backend:
     - docker:dind
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - echo "Build"
     - docker build -t secret-notes-backend:$CI_COMMIT_SHA ./backend
@@ -116,7 +125,7 @@ deliver-backend:
   services:
     - docker:dind
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     # Pull from GitLab registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
@@ -135,7 +144,7 @@ deliver-backend:
 # deploy-backend:
 #   stage: deploy
 #   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
+#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
 #   script:
 #     -
 
@@ -150,6 +159,7 @@ lint-frontend:
   image: node:20
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - cd frontend
     # basic HTML validation using tidy (lightweight, no Node project needed)
@@ -157,24 +167,25 @@ lint-frontend:
     # intentionally weak / nonblocking for now
     - tidy -q -e index.html || true
 
-#snyk-frontend:    # snyk requires dependencies - frontend is to simple by now
-#  stage: snyk
-#  image: node:20
-#  rules:
-#    - if: '$CI_COMMIT_BRANCH == "main"'
-#  script:
-#    - echo "Snyk test frontend"
-#    - cd frontend
-#    - npm ci
-#    - npm install -g snyk
-#    - snyk auth $SNYK_TOKEN
-#    - snyk test
+snyk-frontend:
+  stage: snyk
+  image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  script:
+    - echo "Snyk test frontend"
+    - npm ci
+    - npm install -g snyk
+    - snyk auth $SNYK_TOKEN
+    - snyk test
 
 test-frontend:
   stage: test
   image: node:20
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - cd frontend
     # basic smoke check: file exists and is non-empty
@@ -186,6 +197,7 @@ build-frontend:
   image: docker:latest
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   services:
     - docker:dind
   script:
@@ -198,13 +210,84 @@ build-frontend:
 # deliver-frontend:    # should be done in jenkins for frontend
 #   stage: deliver
 #   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
+#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
 #   script:
 #     -
 
 # deploy-frontend:    # should be done in jenkins for frontend
 #   stage: deploy
 #   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
+#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
 #   script:
 #     -
+
+# =====================================================
+# PERFORMANCE TESTING (k6) - draft for deploy/production
+# =====================================================
+#
+# Required GitLab CI/CD variables before enabling this job:
+# - K6_BASE_URL: staging backend URL after deployment, e.g. https://staging-api.example.com
+#
+# Optional GitLab CI/CD variables:
+# - K6_VUS: virtual users, default in script is 1
+# - K6_DURATION: test duration, default in script is 30s
+# - K6_P95_THRESHOLD: max p95 response time in ms, default in script is 750
+# - K6_ERROR_RATE_THRESHOLD: max failed request rate, default in script is 0.01
+#
+# Note: the backend currently has a global rate limit of 5 requests per minute.
+# For real staging performance tests, either raise/disable that limit in staging
+# or keep K6_VUS/K6_DURATION very small to avoid expected 429 responses.
+#
+# performance-backend:
+#   stage: performance
+#   image: grafana/k6:latest
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+#   script:
+#     - k6 run --summary-export performance/k6/k6-summary.json performance/k6/notes-performance.js
+#   artifacts:
+#     when: always
+#     paths:
+#       - performance/k6/k6-summary.json
+
+# =====================================================
+# E2E TESTING (Playwright) - draft for deploy/production
+# =====================================================
+#
+# Required GitLab CI/CD variables before enabling this job:
+# - FRONTEND_URL: staging frontend URL after deployment, e.g. https://staging.example.com
+#
+# Important for the current frontend:
+# frontend/app.js currently uses API_BASE = "http://localhost:3000".
+# Before running this against real staging, make the API URL configurable
+# or deploy/proxy the backend so the frontend can reach the staging API.
+# Before enabling this job, add Playwright to the project:
+# npm install --save-dev @playwright/test
+#
+# e2e-frontend:
+#   stage: performance
+#   image: mcr.microsoft.com/playwright:v1.54.1-jammy
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+#   script:
+#     - npm ci
+#     - npx playwright test e2e/playwright
+#   artifacts:
+#     when: always
+#     paths:
+#       - playwright-report
+#       - test-results
+
+notify-failure-slack:
+  stage: notify
+  image: curlimages/curl:latest
+  when: on_failure
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' \
+      --data "{\"text\":\"Pipeline failed: $CI_PROJECT_NAME / $CI_COMMIT_BRANCH\n$CI_PIPELINE_URL\"}" \
+      "$SLACK_WEBHOOK_URL"
