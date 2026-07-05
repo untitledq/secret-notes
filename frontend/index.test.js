@@ -1,4 +1,5 @@
-const baseUrl = window.APP_CONFIG.API_URL;
+import { APP_CONFIG } from './config.js';
+const baseUrl = APP_CONFIG.API_URL;
 
 function renderAppDom() {
   document.body.innerHTML = `

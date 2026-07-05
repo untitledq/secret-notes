@@ -1,4 +1,5 @@
-const API_BASE = window.APP_CONFIG.API_URL;
+import { APP_CONFIG } from './config.js';
+const API_BASE = APP_CONFIG.API_URL;
 const TEST_GROUP_UI_FLAG = "test-group-ui-flag";
 const CREATE_VAULT_SELECTOR = "#createNoteVault";
 const LOAD_VAULT_SELECTOR = "#loadNoteVault";
