@@ -11,6 +11,13 @@ pipeline {
 
         // 1. LINT: Holt sich den Node-Container
         stage('Lint') {
+            when {
+                beforeAgent true
+                anyOf {
+                    branch 'main'
+                    branch 'deploy/production'
+                }
+            }
             agent {
                 docker { 
                     image 'node:20-alpine'
@@ -34,6 +41,13 @@ pipeline {
 
         // 2. SNYK (Security Scan)
         stage('Snyk Security Scan') {
+            when {
+                beforeAgent true
+                anyOf {
+                    branch 'main'
+                    branch 'deploy/production'
+                }
+            }
             agent {
                 docker { 
                     image 'snyk/snyk:node'
@@ -53,6 +67,13 @@ pipeline {
 
         // 3. UNIT TESTS
         stage('Unit Tests & Coverage') {
+            when {
+                beforeAgent true
+                anyOf {
+                    branch 'main'
+                    branch 'deploy/production'
+                }
+            }
             agent {
                 docker { 
                     image 'node:20-alpine'
@@ -63,14 +84,22 @@ pipeline {
                 dir('frontend') {
                     sh '''
                         export npm_config_cache=\$(pwd)/.npm-cache
-                        npm run test -- --coverage --watchAll=false
+                        npm run test:coverage
                     '''
                 }
+                archiveArtifacts artifacts: 'frontend/coverage/**', allowEmptyArchive: true
             }
         }
 
         // 4. SONARQUBE
         stage('SonarQube Analysis') {
+            when {
+                beforeAgent true
+                anyOf {
+                    branch 'main'
+                    branch 'deploy/production'
+                }
+            }
             agent {
                 docker {
                     image 'sonarsource/sonar-scanner-cli:latest'
@@ -98,6 +127,13 @@ pipeline {
 
         // 4. BUILD
         stage('Build Docker Image') {
+            when {
+                beforeAgent true
+                anyOf {
+                    branch 'main'
+                    branch 'deploy/production'
+                }
+            }
             agent any
             steps {
                 echo 'Baue das Docker-Image lokal auf dem Server...'
@@ -112,7 +148,7 @@ pipeline {
                             export DOCKER_BUILDKIT=0
                             
                             # Wir bauen das Image lokal direkt mit dem richtigen Namen
-                            docker build -t local-frontend:$COMMIT_SHA -t local-frontend:latest .
+                            docker build -f Dockerfile -t local-frontend:$COMMIT_SHA -t local-frontend:latest ..
                         '''
                     }
                 }
@@ -121,6 +157,10 @@ pipeline {
 
         // 5. DELIVER STAGE
         stage('Deliver to Docker Hub') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
             agent any 
             steps {
                 echo 'Logge bei Docker Hub via Token ein und pushe die Images...'
@@ -157,26 +197,97 @@ pipeline {
                         '''
                     }
                 }
-                echo 'Frontend erfolgreich via Token auf Docker Hub bereitgestellt! 🚀'
+                echo 'Frontend erfolgreich via Token auf Docker Hub bereitgestellt!'
             }
         }
 
-        // 7. CHECK
+        // 7. CHECK ARTEFACTS (Sicherstellen, dass das neue Frontend-Image existiert)
         stage('Check Artefacts') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
+            agent any
             steps {
-                echo 'Prüfe, ob auch das Backend-Artefakt bereit ist...'
+                echo 'Prüfe, ob das lokal gebaute Frontend-Image die korrekte Versionsnummer hat...'
+                dir('frontend') {
+                    script {
+                        def commitSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                        echo "Suche nach lokalem Image: local-frontend:${commitSha}"
+                        
+                        def imageExists = sh(
+                            script: "docker images -q local-frontend:${commitSha} | wc -l",
+                            returnStdout: true
+                        ).trim()
+                        
+                        if (imageExists != "0") {
+                            echo "Erfolg: Passendes Frontend-Artefakt (Version ${commitSha}) ist lokal vorhanden!"
+                        } else {
+                            error "ABBRUCH: Kein lokales Frontend-Image mit der Version ${commitSha} gefunden."
+                        }
+                    }
+                }
             }
         }
-
-        // 8. DEPLOY (Passive Umgebung)
+        
+        // 8. DEPLOY
         stage('Deploy to Passive (Blue/Green-AWS)') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
+            agent any
             steps {
-                echo 'Deploye Frontend auf die passive AWS-Umgebung...'
+                echo 'Deploye Frontend'
+                
+                withCredentials([
+                    file(credentialsId: 'FRONTEND_SSH_KEY', variable: 'KEY_PATH'),
+                    string(credentialsId: 'GREEN_EC2_IP', variable: 'PASSIVE_IP'),
+                    string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
+                    string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN')
+                ]) {
+                    sh '''
+                        COMMIT_SHA=$(git rev-parse --short HEAD)
+                        MY_USER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
+                        PASSIVE_FE_PORT=8081
+                        
+                        chmod 400 "$KEY_PATH"
+                        
+                        echo "Verbinde via SSH-Key-File mit passiver Umgebung unter IP: $PASSIVE_IP..."
+                        
+                        # Wir nutzen das extrahierte Secret $PASSIVE_IP für die Verbindung
+                        ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
+
+                            # 1. Auf der EC2-Instanz bei Docker Hub anmelden
+                            echo '$RAW_TOKEN' | docker login -u '$RAW_USER' --password-stdin
+                            
+                            # 2. Alten passiven Frontend-Container entfernen
+                            docker stop frontend-passive || true
+                            docker rm frontend-passive || true
+                            
+                            # 3. Das frisch gepushte Image ziehen
+                            docker pull ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
+                            
+                            # 4. Den neuen passiven Frontend-Container starten
+                            docker run -d \
+                              --name frontend-passive \
+                              -p ${PASSIVE_FE_PORT}:80 \
+                              ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
+                              
+                            docker logout
+                        "
+                        echo "Passive Umgebung läuft jetzt mit dem neuen Frontend (Version $COMMIT_SHA) auf Port $PASSIVE_FE_PORT!"
+                    '''
+                }
             }
         }
 
         // 9. PERFORMANCE TESTING (k6)
         stage('k6 Performance Testing') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
             steps {
                 echo 'Führe k6 Performance-Tests aus...'
             }
@@ -184,6 +295,10 @@ pipeline {
 
         // 10. E2E TESTING (Playwright)
         stage('Playwright E2E Testing') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
             steps {
                 echo 'Führe Playwright E2E-Tests aus...'
             }
@@ -191,6 +306,10 @@ pipeline {
 
         // 11. SWITCH (Blue/Green)
         stage('Switch Blue/Green') {
+            when {
+                beforeAgent true
+                branch 'deploy/production'
+            }
             steps {
                 echo 'Schalte Umgebung live...'
             }
