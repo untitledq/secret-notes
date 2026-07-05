@@ -84,9 +84,10 @@ pipeline {
                 dir('frontend') {
                     sh '''
                         export npm_config_cache=\$(pwd)/.npm-cache
-                        npm run test -- --coverage --watchAll=false
+                        npm run test:coverage
                     '''
                 }
+                archiveArtifacts artifacts: 'frontend/coverage/**', allowEmptyArchive: true
             }
         }
 
