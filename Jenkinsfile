@@ -323,19 +323,19 @@ pipeline {
                             echo 'Warte kurz auf den Container-Start...'
                             sleep 2
                             
-                            # 5. DIE NEUE LÖSUNG: Den richtigen Key (API_BASE_URL) verwenden und saubere Anführungszeichen setzen!
-                            echo 'window.APP_CONFIG = { "API_BASE_URL": "http://'${BACKEND_IP}':3001" };' > /home/ubuntu/config.js
+                           # 5. DIE NEUE JSON-LÖSUNG: Perfekt valides JSON erzeugen (Völlig ohne Escaping-Probleme!)
+                            echo "{\"API_BASE_URL\": \"http://${BACKEND_IP}:3001\"}" > /home/ubuntu/config.json
 
-                            # 6. Datei blind in den Container kopieren
-                            docker cp /home/ubuntu/config.js frontend-passive:/usr/share/nginx/html/config.js
+                            # 6. Die JSON-Datei blind in den Container kopieren
+                            docker cp /home/ubuntu/config.json frontend-passive:/usr/share/nginx/html/config.json
 
-                            # NEU: Nginx im Container zwingen, die Dateien frisch von der Festplatte zu lesen!
-                            docker exec frontend-passive nginx -s reload
+                            # 7. Temporäre Datei auf der EC2 löschen
+                            rm /home/ubuntu/config.json
 
-                            # 7. Temporäre Datei auf der EC2 löschen (bleibt gleich)
-                            rm /home/ubuntu/config.js
+                            # 8. Den Container neu starten, um den Cache komplett zu leeren
+                            docker restart frontend-passive
                             
-                            # 8. Logout
+                            # 9. Logout
                             docker logout
                         "
                         echo "Passive Umgebung läuft jetzt mit dem neuen Frontend (Version $COMMIT_SHA) auf Port $PASSIVE_FE_PORT und funkt an Backend $BACKEND_IP:3001!"
