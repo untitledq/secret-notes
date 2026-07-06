@@ -115,7 +115,6 @@ build-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     - echo "Build"
     - docker build -t secret-notes-backend:$CI_COMMIT_SHA ./backend
@@ -133,19 +132,16 @@ deliver-backend:
     - docker:dind
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     # Pull from GitLab registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - docker pull $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
     # Re-tag locally
     - docker tag $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA secret-notes-backend:$CI_COMMIT_SHA
-    # Docker Hub delivery
-    - echo "$DOCKERHUB_PASSWORD_NEW" | docker login -u "$DOCKERHUB_USER_NEW" --password-stdin
-    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA
-    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER_NEW/secret-notes-backend:latest
-    - docker push $DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA
-    - docker push $DOCKERHUB_USER_NEW/secret-notes-backend:latest
+        -Dsonar.sources=. \
+        -Dsonar.host.url=$SONAR_HOST_URL \
+        -Dsonar.token=$SONAR_TOKEN \
+        -Dsonar.qualitygate.wait=true
 
 deploy-backend-staging:
   stage: deploy
@@ -154,11 +150,10 @@ deploy-backend-staging:
     - deliver-backend
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   variables:
     BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA"
     BACKEND_CONTAINER_NAME: "secret-notes-backend"
-    BACKEND_PORT: "3001"
+    BACKEND_PORT: "3000"
   before_script:
     - apk add --no-cache openssh-client
     - test -n "$BACKEND_STAGING_DATABASE_URL" || (echo "BACKEND_STAGING_DATABASE_URL is missing" && exit 1)
@@ -166,47 +161,35 @@ deploy-backend-staging:
     - mkdir -p ~/.ssh
     - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
   script:
-    - CLEAN_USER=$(echo "$BACKEND_STAGING_EC2_USER" | tr -d '\r\n[:space:]')
-    - CLEAN_HOST=$(echo "$BACKEND_STAGING_EC2_HOST" | tr -d '\r\n[:space:]')
-    
     - |
-      ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY "${CLEAN_USER}@${CLEAN_HOST}" /bin/bash << 'EOF'
+      ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "
         set -e
 
-        # Lokale Variablen für den Server definieren (werden aus dem Runner-Kontext übergeben)
-        DOCKER_IMAGE="""$BACKEND_DOCKER_IMAGE"""
-        CONTAINER_NAME="""$BACKEND_CONTAINER_NAME"""
-        PORT="""$BACKEND_PORT"""
-        DB_URL="""$BACKEND_STAGING_DATABASE_URL"""
+        docker pull $BACKEND_DOCKER_IMAGE
 
-        docker pull $DOCKER_IMAGE
-
-        # Prisma Migration ausführen
         docker run --rm \
-          -e DATABASE_URL="$DB_URL" \
-          $DOCKER_IMAGE \
+          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
+          $BACKEND_DOCKER_IMAGE \
           npx prisma migrate deploy
 
-        # Alten Container stoppen und löschen
-        docker stop $CONTAINER_NAME || true
-        docker rm $CONTAINER_NAME || true
+        docker stop $BACKEND_CONTAINER_NAME || true
+        docker rm $BACKEND_CONTAINER_NAME || true
 
-        # Neuen Container starten
         docker run -d \
-          --name $CONTAINER_NAME \
+          --name $BACKEND_CONTAINER_NAME \
           --restart unless-stopped \
-          -p $PORT:3000 \
+          -p $BACKEND_PORT:3000 \
           -e NODE_ENV=production \
-          -e DATABASE_URL="$DB_URL" \
-          $DOCKER_IMAGE
+          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
+          $BACKEND_DOCKER_IMAGE
 
-        # Healthcheck auf dem Server ausführen
         sleep 5
-        curl -fsS "http://localhost:$PORT/health"
-      EOF
+        curl -fsS http://localhost:$BACKEND_PORT/health
+      "
   environment:
     name: backend-staging
-    url: "http://$BACKEND_STAGING_EC2_HOST:3001"
+    url: "http://$BACKEND_STAGING_EC2_HOST:3000"
+
 
 # =====================================================
 # FRONTEND
