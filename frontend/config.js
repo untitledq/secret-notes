@@ -1,3 +1,3 @@
-export const APP_CONFIG = {
-  API_URL: "http://3.239.69.15:3001"
+window.APP_CONFIG = {
+  API_BASE_URL: "http://44.203.43.28:3001"
 };

@@ -28,6 +28,7 @@ lint-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     - cd backend
     - npm ci
@@ -39,13 +40,14 @@ snyk-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     - echo "Snyk test backend"
-    - cd backend
+    - cd backend 
     - npm ci
     - npm install -g snyk
     - snyk auth $SNYK_TOKEN
-    - snyk test
+    - snyk test 
 
 sonar-backend:
   stage: sonar
@@ -55,6 +57,7 @@ sonar-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
     GIT_DEPTH: "0"
@@ -79,6 +82,7 @@ test-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
 
   services:
     - name: postgres:17.4-alpine3.21
@@ -115,6 +119,7 @@ build-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     - echo "Build"
     - docker build -t secret-notes-backend:$CI_COMMIT_SHA ./backend
@@ -132,13 +137,16 @@ deliver-backend:
     - docker:dind
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
-    # Pull from GitLab registry
+    # 1. Pull von der GitLab Registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - docker pull $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
-    # Re-tag locally
+    
+    # 2. Sauber re-taggen (Der Sonar-Müll ist hier jetzt komplett gelöscht!)
     - docker tag $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA secret-notes-backend:$CI_COMMIT_SHA
-    # Docker Hub delivery
+    
+    # 3. Login bei Docker Hub und Push (wurde wieder hinzugefügt, damit das Deployment ein Image hat!)
     - echo "$DOCKERHUB_PASSWORD_NEW" | docker login -u "$DOCKERHUB_USER_NEW" --password-stdin
     - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA
     - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER_NEW/secret-notes-backend:latest
@@ -152,22 +160,32 @@ deploy-backend-staging:
     - deliver-backend
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   variables:
     BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA"
-    BACKEND_CONTAINER_NAME: "secret-notes-backend-green" # Wichtig: Fester Name für das Green-Backend
-    BACKEND_PORT: "3001"                                  # Passiver Port
+    BACKEND_CONTAINER_NAME: "secret-notes-backend-green"
+    BACKEND_PORT: "3001"
+  before_script:
+    - apk add --no-cache openssh-client
+    - test -n "$BACKEND_STAGING_DATABASE_URL" || (echo "BACKEND_STAGING_DATABASE_URL is missing" && exit 1) 
+    - chmod 400 "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
   script:
     - |
       ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "
         set -e
-        echo '$DOCKERHUB_PASSWORD_NEW' | docker login -u '$DOCKERHUB_USER_NEW' --password-stdin
+
         docker pull $BACKEND_DOCKER_IMAGE
 
-        # Löscht den alten Container automatisch, falls er existiert
+        docker run --rm \
+          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
+          $BACKEND_DOCKER_IMAGE \
+          npx prisma migrate deploy
+
         docker stop $BACKEND_CONTAINER_NAME || true
         docker rm $BACKEND_CONTAINER_NAME || true
 
-        # Startet den neuen Container auf Port 3001
         docker run -d \
           --name $BACKEND_CONTAINER_NAME \
           --restart unless-stopped \
@@ -175,7 +193,13 @@ deploy-backend-staging:
           -e NODE_ENV=production \
           -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
           $BACKEND_DOCKER_IMAGE
+
+        sleep 5
+        curl -fsS http://localhost:$BACKEND_PORT/health
       "
+  environment:
+    name: backend-staging
+    url: "http://$BACKEND_STAGING_EC2_HOST:3001"
 
 
 # =====================================================
