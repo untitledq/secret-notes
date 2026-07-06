@@ -1,4 +1,4 @@
-const API_BASE = window.APP_CONFIG?.API_BASE_URL || "http://localhost:3000";
+const API_BASE = window.APP_CONFIG?.API_BASE_URL || "http://localhost:3001";
 const TEST_GROUP_UI_FLAG = "test-group-ui-flag";
 const CREATE_VAULT_SELECTOR = "#createNoteVault";
 const LOAD_VAULT_SELECTOR = "#loadNoteVault";
@@ -9,7 +9,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     startBackgroundIconAnimation();
     applyTestGroupUIExperiment();
     try {
-        const res = await fetch(`http://100.58.249.22:3001/health`);
+        const res = await fetch(`${API_BASE}/health`);
         const data = await res.json();
 
         if (!res.ok) {
