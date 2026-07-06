@@ -1,4 +1,4 @@
-const API_BASE = window.APP_CONFIG?.API_BASE_URL || "http://localhost:3000";
+const API_BASE = window.APP_CONFIG?.API_BASE_URL || "http:/100.58.249.22:3000";
 const TEST_GROUP_UI_FLAG = "test-group-ui-flag";
 const CREATE_VAULT_SELECTOR = "#createNoteVault";
 const LOAD_VAULT_SELECTOR = "#loadNoteVault";
