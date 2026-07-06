@@ -132,6 +132,7 @@ deliver-backend:
     - docker:dind
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     # Pull from GitLab registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
@@ -152,6 +153,8 @@ deploy-backend-staging:
     - deliver-backend
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  before_script:
+    - apk add --no-cache openssh-client
   variables:
     BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA"
     BACKEND_CONTAINER_NAME: "secret-notes-backend-green" # Wichtig: Fester Name für das Green-Backend
