@@ -46,8 +46,8 @@ snyk-backend:
     - cd backend
     - npm ci
     - npm install -g snyk
-    - snyk auth $SNYK_TOKEN
-    - snyk test
+    # - snyk auth $SNYK_TOKEN
+    - snyk test --token=$SNYK_TOKEN
 
 sonar-backend:
   stage: sonar
