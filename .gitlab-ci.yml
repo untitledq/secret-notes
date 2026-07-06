@@ -28,7 +28,6 @@ lint-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     - cd backend
     - npm ci
@@ -40,7 +39,6 @@ snyk-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     - echo "Snyk test backend"
     - cd backend 
@@ -57,7 +55,6 @@ sonar-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
     GIT_DEPTH: "0"
@@ -82,7 +79,6 @@ test-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
 
   services:
     - name: postgres:17.4-alpine3.21
@@ -119,7 +115,6 @@ build-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     - echo "Build"
     - docker build -t secret-notes-backend:$CI_COMMIT_SHA ./backend
@@ -137,7 +132,6 @@ deliver-backend:
     - docker:dind
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     # 1. Pull von der GitLab Registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
@@ -160,7 +154,6 @@ deploy-backend-staging:
     - deliver-backend
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   variables:
     BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA"
     BACKEND_CONTAINER_NAME: "secret-notes-backend-green"

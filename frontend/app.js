@@ -1,7 +1,7 @@
-const API_BASE = window.APP_CONFIG?.API_BASE_URL || "http://localhost:3000";
 const TEST_GROUP_UI_FLAG = "test-group-ui-flag";
 const CREATE_VAULT_SELECTOR = "#createNoteVault";
 const LOAD_VAULT_SELECTOR = "#loadNoteVault";
+const API_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:3001";
 
 // --- health check on startup ---
 window.addEventListener("DOMContentLoaded", async () => {
@@ -9,7 +9,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     startBackgroundIconAnimation();
     applyTestGroupUIExperiment();
     try {
-        const res = await fetch(`${API_BASE}/health`);
+        const res = await fetch(`${API_URL}/health`);
         const data = await res.json();
 
         if (!res.ok) {
@@ -45,7 +45,7 @@ async function saveNote() {
             headers["X-PostHog-Session-Id"] = posthog.get_session_id();
         }
 
-        const res = await fetch(`${API_BASE}/notes`, {
+        const res = await fetch(`${API_URL}/notes`, {
             method: "POST", 
             headers,
             body: JSON.stringify({ text, passphrase })
@@ -75,7 +75,7 @@ async function loadNote() {
 
     try {
         const res = await fetch(
-            `${API_BASE}/notes/${id}?passphrase=${encodeURIComponent(passphrase)}`
+            `${API_URL}/notes/${id}?passphrase=${encodeURIComponent(passphrase)}`
         );
 
         const data = await safeJson(res);
