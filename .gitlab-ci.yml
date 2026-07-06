@@ -154,20 +154,45 @@ deploy-backend-staging:
     - deliver-backend
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
-
+  variables:
+    BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA"
+    BACKEND_CONTAINER_NAME: "secret-notes-backend"
+    BACKEND_PORT: "3001"
   before_script:
     - apk add --no-cache openssh-client
-    # Da es ein echtes File ist, setzen wir direkt die Rechte darauf:
-    - chmod 600 "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY"
-
+    - test -n "$BACKEND_STAGING_DATABASE_URL" || (echo "BACKEND_STAGING_DATABASE_URL is missing" && exit 1)
+    - chmod 400 "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
   script:
-    # 1. Variablen säubern
-    - CLEAN_USER=$(echo "$BACKEND_STAGING_EC2_USER" | tr -d '\r\n[:space:]')
-    - CLEAN_HOST=$(echo "$BACKEND_STAGING_EC2_HOST" | tr -d '\r\n[:space:]')
-    
-    # 2. Aufruf ohne Anführungszeichen bei der Key-Variable!
-    - ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${CLEAN_USER}@${CLEAN_HOST} "echo '$DOCKERHUB_PASSWORD_NEW' | docker login -u '$DOCKERHUB_USER_NEW' --password-stdin && docker pull $BACKEND_DOCKER_IMAGE && docker stop $BACKEND_CONTAINER_NAME || true && docker rm $BACKEND_CONTAINER_NAME || true && docker run -d --name $BACKEND_CONTAINER_NAME --restart unless-stopped -p $BACKEND_PORT:3000 -e NODE_ENV=production -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' $BACKEND_DOCKER_IMAGE"
+    - |
+      ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "
+        set -e
+
+        docker pull $BACKEND_DOCKER_IMAGE
+
+        docker run --rm \
+          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
+          $BACKEND_DOCKER_IMAGE \
+          npx prisma migrate deploy
+
+        docker stop $BACKEND_CONTAINER_NAME || true
+        docker rm $BACKEND_CONTAINER_NAME || true
+
+        docker run -d \
+          --name $BACKEND_CONTAINER_NAME \
+          --restart unless-stopped \
+          -p $BACKEND_PORT:3000 \
+          -e NODE_ENV=production \
+          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
+          $BACKEND_DOCKER_IMAGE
+
+        sleep 5
+        curl -fsS http://localhost:$BACKEND_PORT/health
+      "
+  environment:
+    name: backend-staging
+    url: "http://$BACKEND_STAGING_EC2_HOST:3001"
 
 # =====================================================
 # FRONTEND
