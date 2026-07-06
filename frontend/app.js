@@ -3,7 +3,7 @@ const CREATE_VAULT_SELECTOR = "#createNoteVault";
 const LOAD_VAULT_SELECTOR = "#loadNoteVault";
 
 function getApiBaseUrl() {
-    return window.APP_CONFIG?.API_BASE_URL || "http://localhost:3000";
+    return window.APP_CONFIG?.API_BASE_URL || "http://localhost:3001";
 }
 
 // --- health check on startup ---
