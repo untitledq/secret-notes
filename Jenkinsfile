@@ -323,8 +323,8 @@ pipeline {
                             echo 'Warte kurz auf den Container-Start...'
                             sleep 2
                             
-                           # 5. DIE NEUE JSON-LÖSUNG: Perfekt valides JSON erzeugen (Völlig ohne Escaping-Probleme!)
-                            echo "{\"API_BASE_URL\": \"http://${BACKEND_IP}:3001\"}" > /home/ubuntu/config.json
+                            # 5. DIE NEUE JSON-LÖSUNG: Perfekt valides JSON erzeugen (Völlig ohne Escaping-Probleme!)
+                            echo '{"API_BASE_URL": "http://'${BACKEND_IP}':3001"}' > /home/ubuntu/config.json
 
                             # 6. Die JSON-Datei blind in den Container kopieren
                             docker cp /home/ubuntu/config.json frontend-passive:/usr/share/nginx/html/config.json
