@@ -43,11 +43,11 @@ snyk-backend:
     - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     - echo "Snyk test backend"
-    - cd backend
+    - cd backend 
     - npm ci
     - npm install -g snyk
-    # - snyk auth $SNYK_TOKEN
-    - snyk test --token=$SNYK_TOKEN
+    - snyk auth $SNYK_TOKEN
+    - snyk test 
 
 sonar-backend:
   stage: sonar
