@@ -1,3 +1,3 @@
 window.APP_CONFIG = {
-  API_BASE_URL: "http://44.203.43.28:3001"
+  API_BASE_URL: "http://http://100.58.249.22"
 };

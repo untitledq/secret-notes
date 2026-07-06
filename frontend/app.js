@@ -9,7 +9,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     startBackgroundIconAnimation();
     applyTestGroupUIExperiment();
     try {
-        const res = await fetch(`${API_BASE}/health`);
+        const res = await fetch(`http://100.58.249.22:3001/health`);
         const data = await res.json();
 
         if (!res.ok) {
