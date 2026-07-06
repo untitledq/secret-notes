@@ -28,6 +28,7 @@ lint-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     - cd backend
     - npm ci
@@ -39,13 +40,14 @@ snyk-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     - echo "Snyk test backend"
-    - cd backend
+    - cd backend 
     - npm ci
     - npm install -g snyk
     - snyk auth $SNYK_TOKEN
-    - snyk test
+    - snyk test 
 
 sonar-backend:
   stage: sonar
@@ -55,6 +57,7 @@ sonar-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
     GIT_DEPTH: "0"
@@ -79,6 +82,7 @@ test-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
 
   services:
     - name: postgres:17.4-alpine3.21
