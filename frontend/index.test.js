@@ -86,7 +86,6 @@ describe("Secret Notes frontend", () => {
     delete window.gsap;
     delete window.posthog;
   
-    require("./app.js");
   });
 
   test("shows backend health status on startup", async () => {
@@ -94,6 +93,7 @@ describe("Secret Notes frontend", () => {
 
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
+    await require("./app.js");
 
     expect(window.fetch).toHaveBeenCalledWith(`${window.APP_CONFIG.API_BASE_URL}/health`);
     expect(document.getElementById("output").textContent).toBe("Backend OK: ok");
@@ -104,6 +104,7 @@ describe("Secret Notes frontend", () => {
 
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
+    await require("./app.js");
 
     expect(document.getElementById("output").textContent).toBe("Health check failed: db down");
   });
@@ -113,6 +114,7 @@ describe("Secret Notes frontend", () => {
 
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
+    await require("./app.js");
 
     expect(document.getElementById("output").textContent).toBe("Backend unreachable (network error)");
   });
@@ -155,7 +157,7 @@ describe("Secret Notes frontend", () => {
       })
     });
     expect(document.getElementById("output").textContent).toBe("Stored. ID = 42");
-    expect(document.getElementById("loadNoteId").value).toBe("42");
+    expect(document.getElementById("loadNoteId").value).toBe(String(42));
   });
 
   test("shows API validation errors while saving", async () => {
