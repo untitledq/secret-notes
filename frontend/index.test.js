@@ -91,9 +91,9 @@ describe("Secret Notes frontend", () => {
   test("shows backend health status on startup", async () => {
     window.fetch.mockResolvedValueOnce(jsonResponse({ status: "ok" }));
 
+    await require("./app.js");
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
-    await require("./app.js");
 
     expect(window.fetch).toHaveBeenCalledWith(`${window.APP_CONFIG.API_BASE_URL}/health`);
     expect(document.getElementById("output").textContent).toBe("Backend OK: ok");
@@ -102,9 +102,9 @@ describe("Secret Notes frontend", () => {
   test("shows backend health errors on startup", async () => {
     window.fetch.mockResolvedValueOnce(jsonResponse({ error: "db down" }, 503));
 
+    await require("./app.js");
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
-    await require("./app.js");
 
     expect(document.getElementById("output").textContent).toBe("Health check failed: db down");
   });
@@ -112,9 +112,9 @@ describe("Secret Notes frontend", () => {
   test("shows network health errors on startup", async () => {
     window.fetch.mockRejectedValueOnce(new Error("offline"));
 
+    await require("./app.js");
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
-    await require("./app.js");
 
     expect(document.getElementById("output").textContent).toBe("Backend unreachable (network error)");
   });
