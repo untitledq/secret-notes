@@ -438,53 +438,54 @@ pipeline {
                     sh '''
                         COMMIT_SHA=$(git rev-parse --short=8 HEAD)
                         MY_USER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
-                        PASSIVE_FE_PORT=8081
-                        
+
                         chmod 400 "$KEY_PATH"
-                        
-                        
-                        echo "window.APP_CONFIG = { \\"API_BASE_URL\\": \\"http://${BACKEND_IP}:3001\\" };" > local-config.js
-                        
+
+                        # blue/green: read the active color, deploy into the passive one
+                        ACTIVE=$(ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "cat /home/ubuntu/active_color 2>/dev/null || echo blue")
+                        if [ "$ACTIVE" = "blue" ]; then PASSIVE=green; PASSIVE_FE_PORT=8082; else PASSIVE=blue; PASSIVE_FE_PORT=8081; fi
+                        echo "Active is $ACTIVE - deploying to $PASSIVE (port $PASSIVE_FE_PORT)"
+
+                        # remember color/port for the Playwright and switch stages
+                        echo "$PASSIVE" > .passive_color
+                        echo "$PASSIVE_FE_PORT" > .passive_fe_port
+
+                        # config.js points at the backend PROXY (:3000), so the
+                        # frontend survives backend switches without a redeploy
+                        echo "window.APP_CONFIG = { \\"API_BASE_URL\\": \\"http://${BACKEND_IP}:3000\\" };" > local-config.js
+
                         echo "Verbinde via SSH-Key-File mit passiver Umgebung unter IP: $PASSIVE_IP..."
-                        
+
                         scp -i "$KEY_PATH" -o StrictHostKeyChecking=no local-config.js ubuntu@${PASSIVE_IP}:/home/ubuntu/config.js
-                        
+
                         ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
                             set -e
 
-                            # 1. Login bei Docker Hub
                             echo '$RAW_TOKEN' | docker login -u '$RAW_USER' --password-stdin
-                            
-                            # 2. Alten Container stoppen und löschen
-                            docker stop frontend-passive || true
-                            docker rm frontend-passive || true
-                            
-                            # 3. Neues Image von Docker Hub ziehen
+
+                            docker stop frontend-${PASSIVE} || true
+                            docker rm frontend-${PASSIVE} || true
+
                             docker pull ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
-                            
-                            # 4. Container auf Port 8081 starten
+
                             docker run -d \\
-                              --name frontend-passive \\
+                              --name frontend-${PASSIVE} \\
                               -p ${PASSIVE_FE_PORT}:80 \\
                               --restart unless-stopped \\
                               ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
-                              
+
                             echo 'Warte kurz auf den Container-Start...'
                             sleep 2
-                            
-                            # 5. Die auf der EC2 bereitliegende Datei in den Container kopieren
-                            docker cp /home/ubuntu/config.js frontend-passive:/usr/share/nginx/html/config.js
-                            
-                            # 6. Temporäre Datei auf der EC2 löschen
+
+                            docker cp /home/ubuntu/config.js frontend-${PASSIVE}:/usr/share/nginx/html/config.js
+
                             rm /home/ubuntu/config.js
-                            
-                            # 7. Den Container neu starten, damit er die neue config.js sofort erzwingt
-                            docker restart frontend-passive
-                            
-                            # 8. Logout
+
+                            docker restart frontend-${PASSIVE}
+
                             docker logout
                         "
-                        echo "Passive Umgebung läuft jetzt mit dem neuen Frontend (Version $COMMIT_SHA) auf Port $PASSIVE_FE_PORT und funkt an Backend $BACKEND_IP:3001!"
+                        echo "Passive environment ($PASSIVE) now runs frontend $COMMIT_SHA on port $PASSIVE_FE_PORT, backend proxy: $BACKEND_IP:3000"
                     '''
                 }
             }
@@ -504,7 +505,7 @@ pipeline {
                 withCredentials([string(credentialsId: 'GREEN_EC2_IP_BACKEND', variable: 'BACKEND_IP')]) {
                     sh '''
                         docker run --rm -v "$PWD/performance":/perf \
-                          -e K6_BASE_URL="http://${BACKEND_IP}:3001" \
+                          -e K6_BASE_URL="http://${BACKEND_IP}:3000" \
                           -e K6_VUS=3 \
                           -e K6_DURATION=30s \
                           grafana/k6:0.54.0 run /perf/k6/notes-performance.js
@@ -526,11 +527,13 @@ pipeline {
                 echo 'Führe Playwright E2E-Tests aus...'
                 withCredentials([string(credentialsId: 'GREEN_EC2_IP', variable: 'FRONTEND_IP')]) {
                     sh '''
+                        PASSIVE_FE_PORT=$(cat .passive_fe_port)
+
                         # -u + HOME=/tmp: node_modules gehoeren dem Jenkins-User, sonst bricht cleanWs()
                         docker run --rm -v "$PWD":/work -w /work \
                           -u "$(id -u):$(id -g)" \
                           -e HOME=/tmp \
-                          -e FRONTEND_URL="http://${FRONTEND_IP}:8081" \
+                          -e FRONTEND_URL="http://${FRONTEND_IP}:${PASSIVE_FE_PORT}" \
                           mcr.microsoft.com/playwright:v1.61.1-jammy \
                           sh -c "npm ci --no-audit && npx playwright test e2e/playwright"
                     '''
@@ -550,6 +553,19 @@ pipeline {
             }
             steps {
                 echo 'Schalte Umgebung live...'
+                withCredentials([
+                    file(credentialsId: 'FRONTEND_SSH_KEY', variable: 'KEY_PATH'),
+                    string(credentialsId: 'GREEN_EC2_IP', variable: 'FRONTEND_IP')
+                ]) {
+                    sh '''
+                        chmod 400 "$KEY_PATH"
+                        PASSIVE=$(cat .passive_color)
+
+                        ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${FRONTEND_IP} "sudo /usr/local/bin/switch-frontend.sh ${PASSIVE}"
+
+                        echo "Frontend traffic now on ${PASSIVE}"
+                    '''
+                }
             }
         }
     }

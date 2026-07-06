@@ -16,6 +16,7 @@ stages:
   - deliver
   - deploy
   - performance
+  - switch
   - notify
 
 # =====================================================
@@ -147,6 +148,8 @@ deliver-backend:
     - docker push $DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHORT_SHA
     - docker push $DOCKERHUB_USER_NEW/secret-notes-backend:latest
 
+# Blue/green: deploy to the PASSIVE color (blue=3001, green=3002);
+# the nginx proxy on :3000 serves the active one (see deploy/bluegreen/).
 deploy-backend-staging:
   stage: deploy
   image: alpine:3.20
@@ -156,8 +159,6 @@ deploy-backend-staging:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   variables:
     BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHORT_SHA"
-    BACKEND_CONTAINER_NAME: "secret-notes-backend-green"
-    BACKEND_PORT: "3001"
   before_script:
     - apk add --no-cache openssh-client
     - test -n "$BACKEND_STAGING_DATABASE_URL" || (echo "BACKEND_STAGING_DATABASE_URL is missing" && exit 1) 
@@ -165,6 +166,9 @@ deploy-backend-staging:
     - mkdir -p ~/.ssh
     - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
   script:
+    - ACTIVE=$(ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "cat /home/ubuntu/active_color 2>/dev/null || echo blue")
+    - if [ "$ACTIVE" = "blue" ]; then PASSIVE=green; PASSIVE_PORT=3002; else PASSIVE=blue; PASSIVE_PORT=3001; fi
+    - echo "Active is $ACTIVE - deploying to $PASSIVE (port $PASSIVE_PORT)"
     - |
       ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "
         set -e
@@ -176,24 +180,29 @@ deploy-backend-staging:
           $BACKEND_DOCKER_IMAGE \
           npx prisma migrate deploy
 
-        docker stop $BACKEND_CONTAINER_NAME || true
-        docker rm $BACKEND_CONTAINER_NAME || true
+        docker stop secret-notes-backend-$PASSIVE || true
+        docker rm secret-notes-backend-$PASSIVE || true
 
         docker run -d \
-          --name $BACKEND_CONTAINER_NAME \
+          --name secret-notes-backend-$PASSIVE \
           --restart unless-stopped \
-          -p $BACKEND_PORT:3000 \
+          -p $PASSIVE_PORT:3000 \
           -e NODE_ENV=production \
           -e RATE_LIMIT_MAX=1000 \
           -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
           $BACKEND_DOCKER_IMAGE
 
         sleep 5
-        curl -fsS http://localhost:$BACKEND_PORT/health
+        curl -fsS http://localhost:$PASSIVE_PORT/health
       "
+    - echo "PASSIVE_COLOR=$PASSIVE" >> deploy.env
+    - echo "PASSIVE_PORT=$PASSIVE_PORT" >> deploy.env
+  artifacts:
+    reports:
+      dotenv: deploy.env
   environment:
     name: backend-staging
-    url: "http://$BACKEND_STAGING_EC2_HOST:3001"
+    url: "http://$BACKEND_STAGING_EC2_HOST:3000"
 
 
 # =====================================================
@@ -300,7 +309,7 @@ performance-backend-k6:
     K6_P95_THRESHOLD: "1000"
     K6_ERROR_RATE_THRESHOLD: "0.01"
   script:
-    - K6_BASE_URL="http://$BACKEND_STAGING_EC2_HOST:3001" k6 run --summary-export performance/k6/k6-summary.json performance/k6/notes-performance.js
+    - K6_BASE_URL="http://$BACKEND_STAGING_EC2_HOST:$PASSIVE_PORT" k6 run --summary-export performance/k6/k6-summary.json performance/k6/notes-performance.js
   artifacts:
     when: always
     paths:
@@ -326,6 +335,24 @@ e2e-frontend:
     paths:
       - playwright-report
       - test-results
+
+# Flips traffic to the passive color; runs only if deploy, k6 and e2e succeeded.
+switch-backend:
+  stage: switch
+  image: alpine:3.20
+  needs:
+    - deploy-backend-staging
+    - performance-backend-k6
+    - e2e-frontend
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  before_script:
+    - apk add --no-cache openssh-client
+    - chmod 400 "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
+  script:
+    - ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "sudo /usr/local/bin/switch-backend.sh $PASSIVE_COLOR"
 
 notify-failure-slack:
   stage: notify
