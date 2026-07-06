@@ -181,8 +181,8 @@ deploy-backend-staging:
       sleep 5
       curl -fsS http://localhost:$BACKEND_PORT/health" > deploy.sh
 
-    - scp -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no deploy.sh ${CLEAN_USER}@${CLEAN_HOST}:/tmp/deploy.sh
-
+    - ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${CLEAN_USER}@${CLEAN_HOST} "cat > /tmp/deploy.sh" < deploy.sh
+    
     - ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${CLEAN_USER}@${CLEAN_HOST} "bash /tmp/deploy.sh && rm /tmp/deploy.sh"
   environment:
     name: backend-staging
