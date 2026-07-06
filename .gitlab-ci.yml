@@ -156,7 +156,6 @@ deploy-backend-staging:
     - deliver-backend
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   variables:
     BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA"
     BACKEND_CONTAINER_NAME: "secret-notes-backend"
@@ -168,28 +167,31 @@ deploy-backend-staging:
     - mkdir -p ~/.ssh
     - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
   script:
-    - TMP_USER="$BACKEND_STAGING_EC2_USER"
-    - TMP_HOST="$BACKEND_STAGING_EC2_HOST"
-    
-    - if [ -z "$TMP_USER" ]; then TMP_USER="ubuntu"; fi
-    - if [ -z "$TMP_HOST" ]; then TMP_HOST="44.203.43.28"; fi
-
-     - CLEAN_USER=$(echo "$TMP_USER" | tr -d '\r\n[:space:]')
-    - CLEAN_HOST=$(echo "$TMP_HOST" | tr -d '\r\n[:space:]')
-
     - |
-      echo "set -e
-      docker pull $BACKEND_DOCKER_IMAGE
-      docker run --rm -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' $BACKEND_DOCKER_IMAGE npx prisma migrate deploy
-      docker stop $BACKEND_CONTAINER_NAME || true
-      docker rm $BACKEND_CONTAINER_NAME || true
-      docker run -d --name $BACKEND_CONTAINER_NAME --restart unless-stopped -p $BACKEND_PORT:3000 -e NODE_ENV=production -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' $BACKEND_DOCKER_IMAGE
-      sleep 5
-      curl -fsS http://localhost:$BACKEND_PORT/health" > deploy.sh
+      ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "
+        set -e
 
-    - BASE64_SCRIPT=$(base64 -w 0 deploy.sh)
+        docker pull $BACKEND_DOCKER_IMAGE
 
-    - ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${CLEAN_USER}@${CLEAN_HOST} "echo '$BASE64_SCRIPT' | base64 -d > /tmp/deploy.sh && bash /tmp/deploy.sh && rm /tmp/deploy.sh"
+        docker run --rm \
+          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
+          $BACKEND_DOCKER_IMAGE \
+          npx prisma migrate deploy
+
+        docker stop $BACKEND_CONTAINER_NAME || true
+        docker rm $BACKEND_CONTAINER_NAME || true
+
+        docker run -d \
+          --name $BACKEND_CONTAINER_NAME \
+          --restart unless-stopped \
+          -p $BACKEND_PORT:3000 \
+          -e NODE_ENV=production \
+          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
+          $BACKEND_DOCKER_IMAGE
+
+        sleep 5
+        curl -fsS http://localhost:$BACKEND_PORT/health
+      "
   environment:
     name: backend-staging
     url: "http://$BACKEND_STAGING_EC2_HOST:3001"
