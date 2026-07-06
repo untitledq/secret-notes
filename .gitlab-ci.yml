@@ -156,6 +156,7 @@ deploy-backend-staging:
     - deliver-backend
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   variables:
     BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA"
     BACKEND_CONTAINER_NAME: "secret-notes-backend"
