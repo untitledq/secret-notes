@@ -323,24 +323,16 @@ pipeline {
                             echo 'Warte kurz auf den Container-Start...'
                             sleep 2
                             
-                            # 5. DIE NEUE JSON-LÖSUNG: Wir brechen die SSH-Anführungszeichen kurz auf ('"..."'), damit Jenkins die Variable einsetzt!
-                            printf '{"API_BASE_URL": "http://%%s:3001"}\n' "${BACKEND_IP}" > /home/ubuntu/config.json
+                            # 5. Die auf der EC2 bereitliegende Datei in den Container kopieren
+                            docker cp /home/ubuntu/config.js frontend-passive:/usr/share/nginx/html/config.js
                             
-                            # 6. Die JSON-Datei blind in den Container kopieren
-                            docker cp /home/ubuntu/config.json frontend-passive:/usr/share/nginx/html/config.json
-
-                            # NEU & SICHER: Zeigt den Inhalt direkt an, ohne neues SSH aufzurufen!
-                            echo "--- AKTUELLER INHALT DER CONFIG.JSON IM CONTAINER: ---"
-                            docker exec frontend-passive cat /usr/share/nginx/html/config.json
-                            echo "-----------------------------------------------------"
-
-                            # 7. Temporäre Datei auf der EC2 löschen
-                            rm /home/ubuntu/config.json
-
-                            # 8. Den Container neu starten, um den Cache komplett zu leeren
+                            # 6. Temporäre Datei auf der EC2 löschen
+                            rm /home/ubuntu/config.js
+                            
+                            # 7. Den Container neu starten, damit er die neue config.js sofort erzwingt
                             docker restart frontend-passive
                             
-                            # 9. Logout
+                            # 8. Logout
                             docker logout
                         "
                         echo "Passive Umgebung läuft jetzt mit dem neuen Frontend (Version $COMMIT_SHA) auf Port $PASSIVE_FE_PORT und funkt an Backend $BACKEND_IP:3001!"

@@ -2,15 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>
-  fetch('config.json')
-    .then(response => response.json())
-    .then(config => {
-      window.APP_CONFIG = config;
-      window.dispatchEvent(new Event('config-loaded'));
-    })
-    .catch(err => console.error('Fehler beim Laden der config.json:', err));
-</script>
+  <script src="config.js" defer></script>
   <title>Secret Notes</title>
   <link rel="stylesheet" href="styles.css">
 </head>
