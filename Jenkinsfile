@@ -101,7 +101,7 @@ pipeline {
                 }
                 archiveArtifacts artifacts: 'frontend/coverage/**', allowEmptyArchive: true
             }
-        }
+        } 
 
         // 4. SONARQUBE
         stage('SonarQube Analysis') {
