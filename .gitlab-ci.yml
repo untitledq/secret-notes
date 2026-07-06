@@ -168,8 +168,11 @@ deploy-backend-staging:
     - echo "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
 
+    - CLEAN_USER=$(echo "$BACKEND_STAGING_EC2_USER" | tr -d '\r\n[:space:]')
+    - CLEAN_HOST=$(echo "$BACKEND_STAGING_EC2_HOST" | tr -d '\r\n[:space:]')
+
     - |
-      ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "
+      ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "${CLEAN_USER}@${CLEAN_HOST}" "
         set -e
         echo '$DOCKERHUB_PASSWORD_NEW' | docker login -u '$DOCKERHUB_USER_NEW' --password-stdin
         docker pull $BACKEND_DOCKER_IMAGE
