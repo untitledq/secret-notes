@@ -160,7 +160,7 @@ deploy-backend-staging:
   variables:
     BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA"
     BACKEND_CONTAINER_NAME: "secret-notes-backend-green" # Wichtig: Fester Name für das Green-Backend
-    BACKEND_PORT: "3001"                                  # Passiver Port
+    BACKEND_PORT: "3001"                                   # Passiver Port
   script:
     - |
       ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "
