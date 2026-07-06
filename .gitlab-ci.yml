@@ -163,7 +163,7 @@ deploy-backend-staging:
     BACKEND_PORT: "3001"
   before_script:
     - apk add --no-cache openssh-client
-    - test -n "$BACKEND_STAGING_DATABASE_URL" || (echo "BACKEND_STAGING_DATABASE_URL is missing" && exit 1)
+    - test -n "$BACKEND_STAGING_DATABASE_URL" || (echo "BACKEND_STAGING_DATABASE_URL is missing" && exit 1) 
     - chmod 400 "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY"
     - mkdir -p ~/.ssh
     - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
