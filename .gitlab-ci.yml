@@ -172,9 +172,9 @@ deploy-backend-staging:
     - CLEAN_HOST=$(echo "$BACKEND_STAGING_EC2_HOST" | tr -d '\r\n[:space:]')
 
     - |
-      ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "${CLEAN_USER}@${CLEAN_HOST}" "
+      ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "${CLEAN_USER}@${CLEAN_HOST}" /bin/bash << 'EOF'
         set -e
-        echo '$DOCKERHUB_PASSWORD_NEW' | docker login -u '$DOCKERHUB_USER_NEW' --password-stdin
+        echo "$DOCKERHUB_PASSWORD_NEW" | docker login -u "$DOCKERHUB_USER_NEW" --password-stdin
         docker pull $BACKEND_DOCKER_IMAGE
 
         docker stop $BACKEND_CONTAINER_NAME || true
@@ -185,9 +185,9 @@ deploy-backend-staging:
           --restart unless-stopped \
           -p $BACKEND_PORT:3000 \
           -e NODE_ENV=production \
-          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
+          -e DATABASE_URL="$BACKEND_STAGING_DATABASE_URL" \
           $BACKEND_DOCKER_IMAGE
-      "
+      EOF
 
 
 # =====================================================
