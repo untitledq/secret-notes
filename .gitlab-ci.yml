@@ -115,6 +115,7 @@ build-backend:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   script:
     - echo "Build"
     - docker build -t secret-notes-backend:$CI_COMMIT_SHA ./backend
@@ -153,6 +154,7 @@ deploy-backend-staging:
     - deliver-backend
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+    - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   before_script:
     - apk add --no-cache openssh-client
   variables:
