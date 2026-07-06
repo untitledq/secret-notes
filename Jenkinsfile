@@ -324,8 +324,8 @@ pipeline {
                             sleep 2
                             
                             # 5. DIE NEUE JSON-LÖSUNG: Wir brechen die SSH-Anführungszeichen kurz auf ('"..."'), damit Jenkins die Variable einsetzt!
-                            echo "\\\"{\\\"API_BASE_URL\\\": \\\"http://${BACKEND_IP}:3001\\\"}\\\"" > /home/ubuntu/config.json
-
+                            printf '{"API_BASE_URL": "http://%%s:3001"}\n' "${BACKEND_IP}" > /home/ubuntu/config.json
+                            
                             # 6. Die JSON-Datei blind in den Container kopieren
                             docker cp /home/ubuntu/config.json frontend-passive:/usr/share/nginx/html/config.json
 
