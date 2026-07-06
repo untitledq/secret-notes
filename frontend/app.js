@@ -1,7 +1,7 @@
 const TEST_GROUP_UI_FLAG = "test-group-ui-flag";
 const CREATE_VAULT_SELECTOR = "#createNoteVault";
 const LOAD_VAULT_SELECTOR = "#loadNoteVault";
-const API_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:3001";
+const API_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:3000";
 
 // --- health check on startup ---
 window.addEventListener("DOMContentLoaded", async () => {
@@ -74,9 +74,11 @@ async function loadNote() {
     resetVaultAnimation(LOAD_VAULT_SELECTOR, true);
 
     try {
-        const res = await fetch(
-            `${API_URL}/notes/${id}?passphrase=${encodeURIComponent(passphrase)}`
-        );
+        const res = await fetch(`${API_URL}/notes/${id}/decrypt`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ passphrase })
+        });
 
         const data = await safeJson(res);
 

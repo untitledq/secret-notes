@@ -12,7 +12,7 @@ afterAll(async () => {
     await app.close();
 });
 
-test("GET /notes/:id rejects non-integer id formats", async () => {
+test("POST /notes/:id/decrypt rejects non-integer id formats", async () => {
     const passphrase = "pw";
 
     const cases = [
@@ -21,15 +21,23 @@ test("GET /notes/:id rejects non-integer id formats", async () => {
         "NaN",
         "undefined",
         "null",
-        "",
     ];
 
     for (const id of cases) {
         const res = await request(app.server)
-            .get(`/notes/${id}`)
-            .query({ passphrase });
+            .post(`/notes/${id}/decrypt`)
+            .send({ passphrase });
 
         expect(res.statusCode).toBe(400);
-        expect(res.body.error).toBe("Invalid id");
+        expect(res.body.error).toBe("Invalid input");
     }
+});
+
+test("POST /notes/:id/decrypt rejects a missing passphrase", async () => {
+    const res = await request(app.server)
+        .post("/notes/1/decrypt")
+        .send({});
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Invalid input");
 });

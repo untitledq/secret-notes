@@ -27,8 +27,8 @@ test("stores and retrieves unicode + emoji correctly", async () => {
     const id = create.body.id;
 
     const fetch = await request(app.server)
-        .get(`/notes/${id}`)
-        .query({ passphrase: "pw" });
+        .post(`/notes/${id}/decrypt`)
+        .send({ passphrase: "pw" });
 
     expect(fetch.statusCode).toBe(200);
     expect(fetch.body.content).toBe(text);

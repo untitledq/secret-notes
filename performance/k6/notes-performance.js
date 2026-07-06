@@ -66,8 +66,14 @@ export default function () {
 
   if (Number.isInteger(noteId)) {
     // 3. Test the main read path: retrieve and decrypt the note with the same passphrase.
-    const read = http.get(
-      `${BASE_URL}/notes/${noteId}?passphrase=${encodeURIComponent(passphrase)}`
+    const read = http.post(
+      `${BASE_URL}/notes/${noteId}/decrypt`,
+      JSON.stringify({ passphrase }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
     );
 
     check(read, {

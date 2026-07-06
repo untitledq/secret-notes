@@ -16,9 +16,9 @@ export function buildApp() { // Factory function to create configured Fastify ap
   });
 
   app.setErrorHandler((error, request, reply) => { // Global error handler (overrides default Fastify errors)
-    if (error.validation) { // Schema validation errors (params/query/body)
+    if (error.validation || error.code === "FST_ERR_CTP_EMPTY_JSON_BODY") { // Schema validation errors (params/query/body) incl. empty JSON body
       return reply.status(400).send({
-        error: "Invalid id", // Unified validation error response for API consistency
+        error: "Invalid input", // Unified validation error response for API consistency
       });
     }
 
@@ -29,7 +29,7 @@ export function buildApp() { // Factory function to create configured Fastify ap
   });
   
   app.register(rateLimit, { // Global rate limiting middleware
-    max: 5, // Max requests per time window per IP
+    max: Number(process.env.RATE_LIMIT_MAX || 100), // Max requests per time window per IP (staging raises this for k6 load tests)
     timeWindow: "1 minute", // Rate limit window duration
     allowList: [], // Optional whitelist of IPs (none configured)
     errorResponseBuilder: () => ({ // Custom rate limit error response
@@ -96,10 +96,10 @@ export function buildApp() { // Factory function to create configured Fastify ap
     }
   });
 
-  app.get(
-      "/notes/:id", // Retrieve and decrypt note by ID
+  app.post(
+      "/notes/:id/decrypt", // Retrieve and decrypt note by ID (passphrase in body so it never appears in URLs/logs)
       {
-        schema: { // Fastify schema validation for params and query
+        schema: { // Fastify schema validation for params and body
           params: {
             type: "object",
             required: ["id"],
@@ -107,7 +107,7 @@ export function buildApp() { // Factory function to create configured Fastify ap
               id: { type: "integer" }, // Enforce numeric ID at validation layer
             },
           },
-          querystring: {
+          body: {
             type: "object",
             required: ["passphrase"],
             properties: {
@@ -118,21 +118,27 @@ export function buildApp() { // Factory function to create configured Fastify ap
       },
       async (request, reply) => { // Route handler
         const { id } = request.params; // Validated numeric ID
-        const { passphrase } = request.query; // Passphrase from query string
+        const { passphrase } = request.body; // Passphrase from request body
 
-        if (!passphrase || !passphrase.trim()) { // Ensure passphrase is usable
+        if (!passphrase.trim()) { // Ensure passphrase is usable
           return reply.status(400).send({ error: "Missing passphrase" }); // Reject missing key
         }
 
+        let note;
         try {
-          const note = await prisma.note.findUnique({ // Fetch note from database
+          note = await prisma.note.findUnique({ // Fetch note from database
             where: { id },
           });
+        } catch (error) {
+          request.log.error({ error }, "POST /notes/:id/decrypt DB lookup failed"); // Log unexpected DB failure
+          return reply.status(500).send({ error: "Internal server error" }); // DB errors are server errors, not key errors
+        }
 
-          if (!note) { // Handle missing record
-            return reply.status(404).send({ error: "Note not found" }); // Not found response
-          }
+        if (!note) { // Handle missing record
+          return reply.status(404).send({ error: "Note not found" }); // Not found response
+        }
 
+        try {
           const decrypted = decrypt( // Decrypt stored ciphertext
               {
                 content: note.content,
@@ -141,7 +147,7 @@ export function buildApp() { // Factory function to create configured Fastify ap
               },
               passphrase
           );
-          
+
           // POSTHOG Capture Event for activities measurement
           captureEvent(request, "note loaded", {
             note_id: note.id,
@@ -154,7 +160,7 @@ export function buildApp() { // Factory function to create configured Fastify ap
             note_id: id,
             reason: "invalid_key_or_corrupted_data",
           });
-          request.log.warn({ error }, "GET /notes/:id failed decryption"); // Log crypto failure
+          request.log.warn({ error }, "POST /notes/:id/decrypt failed decryption"); // Log crypto failure
           return reply.status(403).send({ error: "Invalid key or corrupted data" }); // Decryption failure response
         }
       }
