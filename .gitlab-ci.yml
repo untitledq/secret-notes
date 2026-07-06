@@ -176,7 +176,7 @@ deploy-backend-staging:
         docker run -d \
           --name $BACKEND_CONTAINER_NAME \
           --restart unless-stopped \
-          -p $BACKEND_PORT:3000 \
+          -p $BACKEND_PORT:3000 \ 
           -e NODE_ENV=production \
           -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
           $BACKEND_DOCKER_IMAGE
