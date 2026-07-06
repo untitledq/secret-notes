@@ -159,7 +159,7 @@ deploy-backend-staging:
     - if: '$CI_COMMIT_BRANCH == "feature/jenkins"'
   variables:
     BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA"
-    BACKEND_CONTAINER_NAME: "secret-notes-backend"
+    BACKEND_CONTAINER_NAME: "secret-notes-backend-green"
     BACKEND_PORT: "3001"
   before_script:
     - apk add --no-cache openssh-client
