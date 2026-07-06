@@ -171,6 +171,7 @@ deploy-backend-staging:
     - CLEAN_USER=$(echo "$BACKEND_STAGING_EC2_USER" | tr -d '\r\n[:space:]')
     - CLEAN_HOST=$(echo "$BACKEND_STAGING_EC2_HOST" | tr -d '\r\n[:space:]')
 
+    # 1. Das Skript lokal wie gewohnt erstellen
     - |
       echo "set -e
       docker pull $BACKEND_DOCKER_IMAGE
@@ -181,9 +182,11 @@ deploy-backend-staging:
       sleep 5
       curl -fsS http://localhost:$BACKEND_PORT/health" > deploy.sh
 
-    - ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${CLEAN_USER}@${CLEAN_HOST} "cat > /tmp/deploy.sh" < deploy.sh
-    
-    - ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${CLEAN_USER}@${CLEAN_HOST} "bash /tmp/deploy.sh && rm /tmp/deploy.sh"
+    # 2. Skript in Base64 umwandeln (macht daraus eine einzige Zeile ohne Sonderzeichen)
+    - BASE64_SCRIPT=$(base64 -w 0 deploy.sh)
+
+    # 3. Der unkaputtbare SSH-Aufruf: Wir schicken den Base64-String rüber, decodieren ihn auf dem EC2 und führen ihn aus
+    - ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${CLEAN_USER}@${CLEAN_HOST} "echo '$BASE64_SCRIPT' | base64 -d > /tmp/deploy.sh && bash /tmp/deploy.sh && rm /tmp/deploy.sh"
   environment:
     name: backend-staging
     url: "http://$BACKEND_STAGING_EC2_HOST:3001"
