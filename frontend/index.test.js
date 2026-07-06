@@ -76,7 +76,7 @@ describe("Secret Notes frontend", () => {
     jest.resetModules();
 
     window.APP_CONFIG = {
-      API_BASE_URL: "http://100.58.249.22:3001"
+      API_BASE_URL: "http://localhost:3000"
     };
     
     renderAppDom();
