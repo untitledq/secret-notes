@@ -17,9 +17,7 @@ pipeline {
                     return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -51,9 +49,7 @@ pipeline {
                     return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -81,9 +77,7 @@ pipeline {
                     return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -111,9 +105,7 @@ pipeline {
                     return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -149,9 +141,7 @@ pipeline {
                     return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any
@@ -181,9 +171,7 @@ pipeline {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any 
@@ -232,9 +220,7 @@ pipeline {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any
@@ -274,9 +260,7 @@ pipeline {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any
@@ -297,9 +281,13 @@ pipeline {
                         
                         chmod 400 "$KEY_PATH"
                         
+                        
+                        echo "window.APP_CONFIG = { \\"API_BASE_URL\\": \\"http://${BACKEND_IP}:3001\\" };" > local-config.js
+                        
                         echo "Verbinde via SSH-Key-File mit passiver Umgebung unter IP: $PASSIVE_IP..."
                         
-                        # Verbindung zur Frontend-EC2-Instanz herstellen
+                        scp -i "$KEY_PATH" -o StrictHostKeyChecking=no local-config.js ubuntu@${PASSIVE_IP}:/home/ubuntu/config.js
+                        
                         ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
                             set -e
 
@@ -323,14 +311,14 @@ pipeline {
                             echo 'Warte kurz auf den Container-Start...'
                             sleep 2
                             
-                            # 5. DIE NEUE LÖSUNG: Datei auf der EC2 erstellen (ohne Verschachtelungs-Stress)
-                            echo 'window.APP_CONFIG = { API_URL: \"http://'${BACKEND_IP}':3001\" };' > /home/ubuntu/config.js
-                            
-                            # 6. Datei blind in den Container kopieren
+                            # 5. Die auf der EC2 bereitliegende Datei in den Container kopieren
                             docker cp /home/ubuntu/config.js frontend-passive:/usr/share/nginx/html/config.js
                             
-                            # 7. Temporäre Datei auf der EC2 löschen
+                            # 6. Temporäre Datei auf der EC2 löschen
                             rm /home/ubuntu/config.js
+                            
+                            # 7. Den Container neu starten, damit er die neue config.js sofort erzwingt
+                            docker restart frontend-passive
                             
                             # 8. Logout
                             docker logout

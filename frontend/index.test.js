@@ -1,5 +1,6 @@
 function renderAppDom() {
   document.body.innerHTML = `
+    <link rel="icon" href="data:,">
     <div class="icon-background" aria-hidden="true">
       <div class="icon-escalator icon-escalator-a"></div>
       <div class="icon-escalator icon-escalator-b"></div>
@@ -75,7 +76,7 @@ describe("Secret Notes frontend", () => {
     jest.resetModules();
 
     window.APP_CONFIG = {
-      API_BASE_URL: "http://localhost:3000"
+      API_BASE_URL: "http://localhost:3001"
     };
     
     renderAppDom();
@@ -85,12 +86,12 @@ describe("Secret Notes frontend", () => {
     delete window.gsap;
     delete window.posthog;
   
-    require("./app.js");
   });
 
   test("shows backend health status on startup", async () => {
     window.fetch.mockResolvedValueOnce(jsonResponse({ status: "ok" }));
 
+    await require("./app.js");
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
 
@@ -101,6 +102,7 @@ describe("Secret Notes frontend", () => {
   test("shows backend health errors on startup", async () => {
     window.fetch.mockResolvedValueOnce(jsonResponse({ error: "db down" }, 503));
 
+    await require("./app.js");
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
 
@@ -110,6 +112,7 @@ describe("Secret Notes frontend", () => {
   test("shows network health errors on startup", async () => {
     window.fetch.mockRejectedValueOnce(new Error("offline"));
 
+    await require("./app.js");
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
 
@@ -154,7 +157,7 @@ describe("Secret Notes frontend", () => {
       })
     });
     expect(document.getElementById("output").textContent).toBe("Stored. ID = 42");
-    expect(document.getElementById("loadNoteId").value).toBe("42");
+    expect(document.getElementById("loadNoteId").value).toBe(String(42));
   });
 
   test("shows API validation errors while saving", async () => {
