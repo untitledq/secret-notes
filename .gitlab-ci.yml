@@ -166,31 +166,44 @@ deploy-backend-staging:
     - mkdir -p ~/.ssh
     - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
   script:
+    - CLEAN_USER=$(echo "$BACKEND_STAGING_EC2_USER" | tr -d '\r\n[:space:]')
+    - CLEAN_HOST=$(echo "$BACKEND_STAGING_EC2_HOST" | tr -d '\r\n[:space:]')
+    
     - |
-      ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "
+      ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY "${CLEAN_USER}@${CLEAN_HOST}" /bin/bash << 'EOF'
         set -e
 
-        docker pull $BACKEND_DOCKER_IMAGE
+        # Lokale Variablen für den Server definieren (werden aus dem Runner-Kontext übergeben)
+        DOCKER_IMAGE="""$BACKEND_DOCKER_IMAGE"""
+        CONTAINER_NAME="""$BACKEND_CONTAINER_NAME"""
+        PORT="""$BACKEND_PORT"""
+        DB_URL="""$BACKEND_STAGING_DATABASE_URL"""
 
+        docker pull $DOCKER_IMAGE
+
+        # Prisma Migration ausführen
         docker run --rm \
-          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
-          $BACKEND_DOCKER_IMAGE \
+          -e DATABASE_URL="$DB_URL" \
+          $DOCKER_IMAGE \
           npx prisma migrate deploy
 
-        docker stop $BACKEND_CONTAINER_NAME || true
-        docker rm $BACKEND_CONTAINER_NAME || true
+        # Alten Container stoppen und löschen
+        docker stop $CONTAINER_NAME || true
+        docker rm $CONTAINER_NAME || true
 
+        # Neuen Container starten
         docker run -d \
-          --name $BACKEND_CONTAINER_NAME \
+          --name $CONTAINER_NAME \
           --restart unless-stopped \
-          -p $BACKEND_PORT:3000 \
+          -p $PORT:3000 \
           -e NODE_ENV=production \
-          -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
-          $BACKEND_DOCKER_IMAGE
+          -e DATABASE_URL="$DB_URL" \
+          $DOCKER_IMAGE
 
+        # Healthcheck auf dem Server ausführen
         sleep 5
-        curl -fsS http://localhost:$BACKEND_PORT/health
-      "
+        curl -fsS "http://localhost:$PORT/health"
+      EOF
   environment:
     name: backend-staging
     url: "http://$BACKEND_STAGING_EC2_HOST:3001"
