@@ -168,12 +168,22 @@ deploy-backend-staging:
     - mkdir -p ~/.ssh
     - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
   script:
-    # Variablen für den SSH-Befehl von Whitespaces befreien
     - CLEAN_USER=$(echo "$BACKEND_STAGING_EC2_USER" | tr -d '\r\n[:space:]')
     - CLEAN_HOST=$(echo "$BACKEND_STAGING_EC2_HOST" | tr -d '\r\n[:space:]')
-    
-    # Einzeiler-SSH-Aufruf OHNE Anführungszeichen beim Key (-i $BACKEND...)!
-    - ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${CLEAN_USER}@${CLEAN_HOST} "set -e && docker pull $BACKEND_DOCKER_IMAGE && docker run --rm -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' $BACKEND_DOCKER_IMAGE npx prisma migrate deploy && docker stop $BACKEND_CONTAINER_NAME || true && docker rm $BACKEND_CONTAINER_NAME || true && docker run -d --name $BACKEND_CONTAINER_NAME --restart unless-stopped -p $BACKEND_PORT:3000 -e NODE_ENV=production -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' $BACKEND_DOCKER_IMAGE && sleep 5 && curl -fsS http://localhost:$BACKEND_PORT/health"
+
+    - |
+      echo "set -e
+      docker pull $BACKEND_DOCKER_IMAGE
+      docker run --rm -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' $BACKEND_DOCKER_IMAGE npx prisma migrate deploy
+      docker stop $BACKEND_CONTAINER_NAME || true
+      docker rm $BACKEND_CONTAINER_NAME || true
+      docker run -d --name $BACKEND_CONTAINER_NAME --restart unless-stopped -p $BACKEND_PORT:3000 -e NODE_ENV=production -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' $BACKEND_DOCKER_IMAGE
+      sleep 5
+      curl -fsS http://localhost:$BACKEND_PORT/health" > deploy.sh
+
+    - scp -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no deploy.sh ${CLEAN_USER}@${CLEAN_HOST}:/tmp/deploy.sh
+
+    - ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${CLEAN_USER}@${CLEAN_HOST} "bash /tmp/deploy.sh && rm /tmp/deploy.sh"
   environment:
     name: backend-staging
     url: "http://$BACKEND_STAGING_EC2_HOST:3001"
