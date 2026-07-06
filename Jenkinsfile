@@ -297,11 +297,24 @@ pipeline {
                         
                         chmod 400 "$KEY_PATH"
                         
-                        echo "Verbinde via SSH-Key-File mit passiver Umgebung unter IP: $PASSIVE_IP..."
                         
-                        # Verbindung zur Frontend-EC2-Instanz herstellen
-                        ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
-                            set -e
+                            # =========================================================================
+                            # SCHRITT A: Datei LOKAL im Jenkins-Runner erstellen (Völlig ohne SSH-Frust!)
+                            # =========================================================================
+                            echo "window.APP_CONFIG = { \\"API_BASE_URL\\": \\"http://${BACKEND_IP}:3001\\" };" > local-config.js
+                            
+                            echo "Verbinde via SSH-Key-File mit passiver Umgebung unter IP: $PASSIVE_IP..."
+                            
+                            # =========================================================================
+                            # SCHRITT B: Die perfekt formatierte Datei vorab per SCP auf die EC2 schieben
+                            # =========================================================================
+                            scp -i "$KEY_PATH" -o StrictHostKeyChecking=no local-config.js ubuntu@${PASSIVE_IP}:/home/ubuntu/config.js
+                            
+                            # =========================================================================
+                            # SCHRITT C: Jetzt erst per SSH verbinden, um Docker zu steuern
+                            # =========================================================================
+                            ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
+                                set -e
 
                             # 1. Login bei Docker Hub
                             echo '$RAW_TOKEN' | docker login -u '$RAW_USER' --password-stdin
