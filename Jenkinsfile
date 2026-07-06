@@ -17,9 +17,7 @@ pipeline {
                     return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -51,9 +49,7 @@ pipeline {
                     return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -81,9 +77,7 @@ pipeline {
                     return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -111,9 +105,7 @@ pipeline {
                     return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent {
@@ -149,9 +141,7 @@ pipeline {
                     return env.BRANCH_NAME == 'main' || 
                         env.BRANCH_NAME == 'deploy/production' || 
                         env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any
@@ -181,9 +171,7 @@ pipeline {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any 
@@ -232,9 +220,7 @@ pipeline {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any
@@ -274,9 +260,7 @@ pipeline {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('feature/jenkins') ||
-                        env.BRANCH_NAME == 'feature/jenkins'
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             agent any
@@ -298,23 +282,14 @@ pipeline {
                         chmod 400 "$KEY_PATH"
                         
                         
-                            # =========================================================================
-                            # SCHRITT A: Datei LOKAL im Jenkins-Runner erstellen (Völlig ohne SSH-Frust!)
-                            # =========================================================================
-                            echo "window.APP_CONFIG = { \\"API_BASE_URL\\": \\"http://${BACKEND_IP}:3001\\" };" > local-config.js
-                            
-                            echo "Verbinde via SSH-Key-File mit passiver Umgebung unter IP: $PASSIVE_IP..."
-                            
-                            # =========================================================================
-                            # SCHRITT B: Die perfekt formatierte Datei vorab per SCP auf die EC2 schieben
-                            # =========================================================================
-                            scp -i "$KEY_PATH" -o StrictHostKeyChecking=no local-config.js ubuntu@${PASSIVE_IP}:/home/ubuntu/config.js
-                            
-                            # =========================================================================
-                            # SCHRITT C: Jetzt erst per SSH verbinden, um Docker zu steuern
-                            # =========================================================================
-                            ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
-                                set -e
+                        echo "window.APP_CONFIG = { \\"API_BASE_URL\\": \\"http://${BACKEND_IP}:3001\\" };" > local-config.js
+                        
+                        echo "Verbinde via SSH-Key-File mit passiver Umgebung unter IP: $PASSIVE_IP..."
+                        
+                        scp -i "$KEY_PATH" -o StrictHostKeyChecking=no local-config.js ubuntu@${PASSIVE_IP}:/home/ubuntu/config.js
+                        
+                        ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
+                            set -e
 
                             # 1. Login bei Docker Hub
                             echo '$RAW_TOKEN' | docker login -u '$RAW_USER' --password-stdin
