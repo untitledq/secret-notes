@@ -323,15 +323,16 @@ pipeline {
                             echo 'Warte kurz auf den Container-Start...'
                             sleep 2
                             
-                            # 5. DIE NEUE JSON-LÖSUNG: Perfekt valides JSON erzeugen (Völlig ohne Escaping-Probleme!)
-                            echo '{"API_BASE_URL": "http://'${BACKEND_IP}':3001"}' > /home/ubuntu/config.json
-
-                            echo "--- AKTUELLER INHALT DER CONFIG.JSON IM CONTAINER: ---"
-                            ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "docker exec frontend-passive cat /usr/share/nginx/html/config.json"
-                            echo "-----------------------------------------------------"
+                            # 5. DIE NEUE JSON-LÖSUNG: Wir brechen die SSH-Anführungszeichen kurz auf ('"..."'), damit Jenkins die Variable einsetzt!
+                            echo '{"API_BASE_URL": "http://'"${BACKEND_IP}"':3001"}' > /home/ubuntu/config.json
 
                             # 6. Die JSON-Datei blind in den Container kopieren
                             docker cp /home/ubuntu/config.json frontend-passive:/usr/share/nginx/html/config.json
+
+                            # NEU & SICHER: Zeigt den Inhalt direkt an, ohne neues SSH aufzurufen!
+                            echo "--- AKTUELLER INHALT DER CONFIG.JSON IM CONTAINER: ---"
+                            docker exec frontend-passive cat /usr/share/nginx/html/config.json
+                            echo "-----------------------------------------------------"
 
                             # 7. Temporäre Datei auf der EC2 löschen
                             rm /home/ubuntu/config.json
