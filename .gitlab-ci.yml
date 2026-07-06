@@ -162,12 +162,12 @@ deploy-backend-staging:
     - chmod 600 "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY"
 
   script:
-    # 1. Variablen von unsichtbaren Zeichen befreien
+    # 1. Variablen säubern
     - CLEAN_USER=$(echo "$BACKEND_STAGING_EC2_USER" | tr -d '\r\n[:space:]')
     - CLEAN_HOST=$(echo "$BACKEND_STAGING_EC2_HOST" | tr -d '\r\n[:space:]')
     
-    # 2. Direkt die von GitLab bereitgestellte Datei im SSH-Befehl aufrufen
-    - ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" -o StrictHostKeyChecking=no "${CLEAN_USER}@${CLEAN_HOST}" "echo '$DOCKERHUB_PASSWORD_NEW' | docker login -u '$DOCKERHUB_USER_NEW' --password-stdin && docker pull $BACKEND_DOCKER_IMAGE && docker stop $BACKEND_CONTAINER_NAME || true && docker rm $BACKEND_CONTAINER_NAME || true && docker run -d --name $BACKEND_CONTAINER_NAME --restart unless-stopped -p $BACKEND_PORT:3000 -e NODE_ENV=production -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' $BACKEND_DOCKER_IMAGE"
+    # 2. Aufruf ohne Anführungszeichen bei der Key-Variable!
+    - ssh -i $BACKEND_STAGING_EC2_SSH_PRIVATE_KEY -o StrictHostKeyChecking=no ${CLEAN_USER}@${CLEAN_HOST} "echo '$DOCKERHUB_PASSWORD_NEW' | docker login -u '$DOCKERHUB_USER_NEW' --password-stdin && docker pull $BACKEND_DOCKER_IMAGE && docker stop $BACKEND_CONTAINER_NAME || true && docker rm $BACKEND_CONTAINER_NAME || true && docker run -d --name $BACKEND_CONTAINER_NAME --restart unless-stopped -p $BACKEND_PORT:3000 -e NODE_ENV=production -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' $BACKEND_DOCKER_IMAGE"
 
 # =====================================================
 # FRONTEND
