@@ -75,7 +75,7 @@ describe("Secret Notes frontend", () => {
     jest.resetModules();
 
     window.APP_CONFIG = {
-      API_URL: "http://3.239.69.15:3001"
+      API_BASE_URL: "http://localhost:3000"
     };
     
     renderAppDom();
@@ -94,7 +94,7 @@ describe("Secret Notes frontend", () => {
     window.dispatchEvent(new Event("DOMContentLoaded"));
     await flushAsyncWork();
 
-    expect(window.fetch).toHaveBeenCalledWith(`${window.APP_CONFIG.API_URL}/health`);
+    expect(window.fetch).toHaveBeenCalledWith(`${window.APP_CONFIG.API_BASE_URL}/health`);
     expect(document.getElementById("output").textContent).toBe("Backend OK: ok");
   });
 
@@ -145,7 +145,7 @@ describe("Secret Notes frontend", () => {
 
     await window.saveNote();
 
-    expect(window.fetch).toHaveBeenCalledWith(`${window.APP_CONFIG.API_URL}/notes`, {
+    expect(window.fetch).toHaveBeenCalledWith(`${window.APP_CONFIG.API_BASE_URL}/notes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -182,7 +182,7 @@ describe("Secret Notes frontend", () => {
     await window.loadNote();
 
     expect(window.fetch).toHaveBeenCalledWith(
-      `${window.APP_CONFIG.API_URL}/notes/9?passphrase=key%20with%20spaces%20%26%20symbols`
+      `${window.APP_CONFIG.API_BASE_URL}/notes/9?passphrase=key%20with%20spaces%20%26%20symbols`
     );
     expect(document.getElementById("loadNoteContent").value).toBe("opened note");
     expect(document.getElementById("output").textContent).toBe("Note loaded successfully");
