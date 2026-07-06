@@ -1,5 +1,6 @@
 function renderAppDom() {
   document.body.innerHTML = `
+    <link rel="icon" href="data:,">
     <div class="icon-background" aria-hidden="true">
       <div class="icon-escalator icon-escalator-a"></div>
       <div class="icon-escalator icon-escalator-b"></div>
