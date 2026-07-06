@@ -323,13 +323,16 @@ pipeline {
                             echo 'Warte kurz auf den Container-Start...'
                             sleep 2
                             
-                            # 5. DIE NEUE LÖSUNG: Datei auf der EC2 erstellen (ohne Verschachtelungs-Stress)
-                            echo 'window.APP_CONFIG = { API_BASE_URL: \"http://'${BACKEND_IP}':3001\" };' > /home/ubuntu/config.js
-                            
+                            # 5. DIE NEUE LÖSUNG: Den richtigen Key (API_BASE_URL) verwenden und saubere Anführungszeichen setzen!
+                            echo 'window.APP_CONFIG = { "API_BASE_URL": "http://'${BACKEND_IP}':3001" };' > /home/ubuntu/config.js
+
                             # 6. Datei blind in den Container kopieren
                             docker cp /home/ubuntu/config.js frontend-passive:/usr/share/nginx/html/config.js
-                            
-                            # 7. Temporäre Datei auf der EC2 löschen
+
+                            # NEU: Nginx im Container zwingen, die Dateien frisch von der Festplatte zu lesen!
+                            docker exec frontend-passive nginx -s reload
+
+                            # 7. Temporäre Datei auf der EC2 löschen (bleibt gleich)
                             rm /home/ubuntu/config.js
                             
                             # 8. Logout
