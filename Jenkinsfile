@@ -324,7 +324,7 @@ pipeline {
                             sleep 2
                             
                             # 5. DIE NEUE LÖSUNG: Datei auf der EC2 erstellen (ohne Verschachtelungs-Stress)
-                            echo 'window.APP_CONFIG = { API_URL: \"http://'${BACKEND_IP}':3001\" };' > /home/ubuntu/config.js
+                            echo 'window.APP_CONFIG = { API_BASE_URL: \"http://'${BACKEND_IP}':3001\" };' > /home/ubuntu/config.js
                             
                             # 6. Datei blind in den Container kopieren
                             docker cp /home/ubuntu/config.js frontend-passive:/usr/share/nginx/html/config.js
