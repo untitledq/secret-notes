@@ -19,11 +19,17 @@ stages:
   - switch
   - notify
 
+# Private project runner (no shared-runner compute minutes).
+.default-runner:
+  tags:
+    - deb-runner
+
 # =====================================================
 # BACKEND
 # =====================================================
 
 lint-backend:
+  extends: .default-runner
   stage: lint
   image: node:20
   rules:
@@ -35,6 +41,7 @@ lint-backend:
     - npx eslint .
 
 snyk-backend:
+  extends: .default-runner
   stage: snyk
   image: node:20
   rules:
@@ -49,6 +56,7 @@ snyk-backend:
     - snyk test 
 
 sonar-backend:
+  extends: .default-runner
   stage: sonar
   image:
     name: sonarsource/sonar-scanner-cli:12.1
@@ -81,6 +89,7 @@ sonar-backend:
         -Dsonar.qualitygate.wait=true
 
 test-backend:
+  extends: .default-runner
   stage: test
   image: node:20
   rules:
@@ -115,6 +124,7 @@ test-backend:
         path: backend/coverage/cobertura-coverage.xml
 
 build-backend:
+  extends: .default-runner
   stage: build
   image: docker:latest
   services:
@@ -133,6 +143,7 @@ build-backend:
     - docker push $CI_REGISTRY_IMAGE/backend:latest
 
 deliver-backend:
+  extends: .default-runner
   stage: deliver
   image: docker:latest
   services:
@@ -157,6 +168,7 @@ deliver-backend:
 # Blue/green: deploy to the PASSIVE color (blue=3001, green=3002);
 # the nginx proxy on :3000 serves the active one (see deploy/bluegreen/).
 deploy-backend-staging:
+  extends: .default-runner
   stage: deploy
   image: alpine:3.20
   needs:
@@ -221,6 +233,7 @@ deploy-backend-staging:
 # =====================================================
 
 performance-backend-k6:
+  extends: .default-runner
   stage: performance
   image:
     name: grafana/k6:0.54.0
@@ -246,6 +259,7 @@ performance-backend-k6:
 # =====================================================
 
 e2e-frontend:
+  extends: .default-runner
   stage: performance
   image: mcr.microsoft.com/playwright:v1.61.1-jammy
   needs:
@@ -264,6 +278,7 @@ e2e-frontend:
 
 # Flips traffic to the passive color; runs only if deploy, k6 and e2e succeeded.
 switch-backend:
+  extends: .default-runner
   stage: switch
   image: alpine:3.20
   needs:
@@ -281,6 +296,7 @@ switch-backend:
     - ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "sudo /usr/local/bin/switch-backend.sh $PASSIVE_COLOR"
 
 notify-failure-slack:
+  extends: .default-runner
   stage: notify
   image: curlimages/curl:latest
   when: on_failure
