@@ -508,7 +508,9 @@ pipeline {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
-                        env.GIT_BRANCH?.contains('deploy/production')
+                    env.BRANCH_NAME == 'develop' ||
+                        env.GIT_BRANCH?.contains('deploy/production') ||
+                        env.GIT_BRANCH?.contains('develop')
                 }
             }
             steps {
