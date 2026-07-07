@@ -1,6 +1,10 @@
 pipeline {
     agent any 
 
+    options {
+        disableConcurrentBuilds()
+    }
+
     stages {
         stage('Säubern & Vorbereiten') {
             steps {
@@ -125,6 +129,10 @@ pipeline {
                         -Dsonar.projectKey=secret-notes-frontend \
                         -Dsonar.projectName="Secret Notes Frontend" \
                         -Dsonar.sources=. \
+                        -Dsonar.exclusions=node_modules/**,coverage/**,**/*.test.js,**/*.config.js \
+                        -Dsonar.tests=. \
+                        -Dsonar.test.inclusions=**/*.test.js \
+                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
                         -Dsonar.host.url=${SONAR_HOST_URL} \
                         -Dsonar.token=${SONAR_TOKEN} \
                         -Dsonar.qualitygate.wait=true \
@@ -251,7 +259,10 @@ pipeline {
                         -Dsonar.projectKey=secret-notes-backend \
                         -Dsonar.projectName="Secret Notes Backend" \
                         -Dsonar.sources=. \
-                        -Dsonar.exclusions=node_modules/**,coverage/** \
+                        -Dsonar.exclusions=node_modules/**,coverage/**,**/*.test.js \
+                        -Dsonar.tests=. \
+                        -Dsonar.test.inclusions=**/*.test.js \
+                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
                         -Dsonar.host.url=${SONAR_HOST_URL} \
                         -Dsonar.token=${SONAR_TOKEN} \
                         -Dsonar.qualitygate.wait=true \
