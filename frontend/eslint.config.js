@@ -7,7 +7,11 @@ export default defineConfig([
   {
     ignores: [
       "coverage/**",
-      "node_modules/**"
+      "node_modules/**",
+      ".sonar/**",
+      ".npm-cache/**",
+      "playwright-report/**",
+      "test-results/**"
     ],
   },
   js.configs.recommended,
