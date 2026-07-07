@@ -13,7 +13,7 @@ pipeline {
             }
         }
 
-        // 1. LINT: Holt sich den Node-Container
+        // 1. LINT
         stage('Lint') {
             when {
                 beforeAgent true
@@ -142,136 +142,6 @@ pipeline {
             }
         }
 
-        // BACKEND: same stages as in GitLab; deliver/deploy is done by GitLab only
-        stage('Backend Lint') {
-            when {
-                beforeAgent true
-                expression { 
-                    return env.BRANCH_NAME == 'main' || 
-                        env.BRANCH_NAME == 'deploy/production' || 
-                        env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production')
-                }
-            }
-            agent {
-                docker { 
-                    image 'node:20-alpine'
-                }
-            }
-            steps {
-                dir('backend') {
-                    sh '''
-                        rm -rf node_modules .npm-cache
-                        export npm_config_cache=\$(pwd)/.npm-cache
-                        npm ci --no-audit
-                        npm run lint
-                    '''
-                }
-            }
-        }
-
-        stage('Backend Snyk Scan') {
-            when {
-                beforeAgent true
-                expression { 
-                    return env.BRANCH_NAME == 'main' || 
-                        env.BRANCH_NAME == 'deploy/production' || 
-                        env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production')
-                }
-            }
-            agent {
-                docker { 
-                    image 'snyk/snyk:node'
-                }
-            }
-            environment {
-                SNYK_TOKEN = credentials('SNYK_TOKEN')
-                HOME = "${WORKSPACE}/backend"
-            }
-            steps {
-                dir('backend') {
-                    sh 'snyk test --severity-threshold=high'
-                }
-            }
-        }
-
-        stage('Backend Unit Tests & Coverage') {
-            when {
-                beforeAgent true
-                expression { 
-                    return env.BRANCH_NAME == 'main' || 
-                        env.BRANCH_NAME == 'deploy/production' || 
-                        env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production')
-                }
-            }
-            agent any
-            steps {
-                sh '''
-                    NET=sn-test-${BUILD_NUMBER}
-                    DB=sn-test-db-${BUILD_NUMBER}
-
-                    docker network create $NET || true
-                    docker run -d --rm --name $DB --network $NET \
-                      -e POSTGRES_DB=secret_notes -e POSTGRES_USER=secret -e POSTGRES_PASSWORD=secret \
-                      postgres:17.4-alpine3.21
-
-                    sleep 8
-
-                    # -u + HOME=/tmp: Dateien gehoeren dem Jenkins-User, sonst bricht cleanWs() im naechsten Lauf
-                    docker run --rm --network $NET -v "$PWD/backend":/app -w /app \
-                      -u "$(id -u):$(id -g)" -e HOME=/tmp -e npm_config_cache=/tmp/.npm \
-                      -e DATABASE_URL=postgresql://secret:secret@$DB:5432/secret_notes \
-                      node:20 sh -c "npm ci --no-audit && npx prisma generate && npx prisma migrate deploy && npm run test:coverage" \
-                      || { docker stop $DB || true; docker network rm $NET || true; exit 1; }
-
-                    docker stop $DB || true
-                    docker network rm $NET || true
-                '''
-                archiveArtifacts artifacts: 'backend/coverage/**', allowEmptyArchive: true
-            }
-        }
-
-        stage('Backend SonarQube Analysis') {
-            when {
-                beforeAgent true
-                expression { 
-                    return env.BRANCH_NAME == 'main' || 
-                        env.BRANCH_NAME == 'deploy/production' || 
-                        env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production')
-                }
-            }
-            agent {
-                docker {
-                    image 'sonarsource/sonar-scanner-cli:latest'
-                }
-            }
-            environment {
-                SONAR_TOKEN    = credentials('SONAR_TOKEN')
-                SONAR_HOST_URL = credentials('SONAR_HOST_URL')
-            }
-            steps {
-                dir('backend') {
-                    sh '''
-                        sonar-scanner \
-                        -Dsonar.projectKey=secret-notes-backend \
-                        -Dsonar.projectName="Secret Notes Backend" \
-                        -Dsonar.sources=. \
-                        -Dsonar.exclusions=node_modules/**,coverage/**,**/*.test.js \
-                        -Dsonar.tests=. \
-                        -Dsonar.test.inclusions=**/*.test.js \
-                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                        -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.token=${SONAR_TOKEN} \
-                        -Dsonar.qualitygate.wait=true \
-                        -Dsonar.userHome=\$(pwd)/.sonar
-                    '''
-                }
-            }
-        }
-
         // 5. BUILD
         stage('Build Docker Image') {
             when {
@@ -287,16 +157,13 @@ pipeline {
             steps {
                 echo 'Baue das Docker-Image lokal auf dem Server...'
                 dir('frontend') {
-                    // Wir holen den Usernamen aus den Jenkins-Secrets
                     withCredentials([string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER')]) {
                         sh '''
-                            # Wandelt den Usernamen direkt im RAM in Kleinbuchstaben um – ohne Rohdaten im Code!
                             MY_USER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
                             COMMIT_SHA=$(git rev-parse --short=8 HEAD)
                             
                             export DOCKER_BUILDKIT=0
                             
-                            # Wir bauen das Image lokal direkt mit dem richtigen Namen
                             docker build -f Dockerfile -t local-frontend:$COMMIT_SHA -t local-frontend:latest ..
                         '''
                     }
@@ -305,28 +172,7 @@ pipeline {
         }
 
 
-        stage('Build Backend Docker Image') {
-            when {
-                beforeAgent true
-                expression { 
-                    return env.BRANCH_NAME == 'main' || 
-                        env.BRANCH_NAME == 'deploy/production' || 
-                        env.GIT_BRANCH?.contains('main') || 
-                        env.GIT_BRANCH?.contains('deploy/production')
-                }
-            }
-            agent any
-            steps {
-                sh '''
-                    COMMIT_SHA=$(git rev-parse --short=8 HEAD)
-                    export DOCKER_BUILDKIT=0
-                    docker build -t local-backend:$COMMIT_SHA ./backend
-                    docker rmi local-backend:$COMMIT_SHA
-                '''
-            }
-        }
-
-        // 6. DELIVER STAGE
+        // 6. DELIVER
         stage('Deliver to Docker Hub') {
             when {
                 beforeAgent true
@@ -339,30 +185,25 @@ pipeline {
             steps {
                 echo 'Logge bei Docker Hub via Token ein und pushe die Images...'
                 dir('frontend') {
-                    // Hier nutzen wir beide Secrets (User + Token)
                     withCredentials([
                         string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
                         string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN')
                     ]) {
                         sh '''
-                            # Auch hier: Umwandlung direkt im Speicher
                             MY_USER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
                             COMMIT_SHA=$(git rev-parse --short=8 HEAD)
                             
                             export DOCKER_BUILDKIT=0
                             
-                            # 1. Bei Docker Hub mit dem Token einloggen
                             echo "$RAW_TOKEN" | docker login -u "$RAW_USER" --password-stdin
                             
-                            # 2. Die lokalen Images mit dem Docker Hub Pfad verknüpfen
                             docker tag local-frontend:latest ${MY_USER}/secret-notes-frontend:latest
                             docker tag local-frontend:$COMMIT_SHA ${MY_USER}/secret-notes-frontend:$COMMIT_SHA
                             
-                            # 3. Beide Tags zu Docker Hub pushen
                             docker push ${MY_USER}/secret-notes-frontend:latest
                             docker push ${MY_USER}/secret-notes-frontend:$COMMIT_SHA
                             
-                            # 4. Lokale Images löschen, um AWS-Speicher zu sparen
+                            # remove local images to save disk space on the EC2
                             docker rmi local-frontend:$COMMIT_SHA local-frontend:latest
                             docker rmi ${MY_USER}/secret-notes-frontend:$COMMIT_SHA
                             docker rmi ${MY_USER}/secret-notes-frontend:latest
@@ -375,7 +216,7 @@ pipeline {
             }
         }
 
-        // 7. CHECK ARTEFACTS (Sicherstellen, dass das neue Frontend-Image existiert)
+        // 7. CHECK ARTEFACTS
         stage('Check Artefacts') {
             when {
                 beforeAgent true
@@ -499,6 +340,8 @@ pipeline {
                         echo "Passive environment ($PASSIVE) now runs frontend $COMMIT_SHA on port $PASSIVE_FE_PORT, backend proxy: $BACKEND_IP:3000"
                     '''
                 }
+                // later stages may run in a different workspace
+                stash name: 'bluegreen-state', includes: '.passive_color,.passive_fe_port'
             }
         }
 
@@ -508,9 +351,7 @@ pipeline {
                 beforeAgent true
                 expression { 
                     return env.BRANCH_NAME == 'deploy/production' ||
-                    env.BRANCH_NAME == 'develop' ||
-                        env.GIT_BRANCH?.contains('deploy/production') ||
-                        env.GIT_BRANCH?.contains('develop')
+                        env.GIT_BRANCH?.contains('deploy/production')
                 }
             }
             steps {
@@ -538,11 +379,12 @@ pipeline {
             }
             steps {
                 echo 'Führe Playwright E2E-Tests aus...'
+                unstash 'bluegreen-state'
                 withCredentials([string(credentialsId: 'GREEN_EC2_IP', variable: 'FRONTEND_IP')]) {
                     sh '''
                         PASSIVE_FE_PORT=$(cat .passive_fe_port)
 
-                        # -u + HOME=/tmp: node_modules gehoeren dem Jenkins-User, sonst bricht cleanWs()
+                        # -u + HOME=/tmp: files stay owned by the Jenkins user, otherwise cleanWs() breaks
                         docker run --rm -v "$PWD":/work -w /work \
                           -u "$(id -u):$(id -g)" \
                           -e HOME=/tmp \
@@ -566,6 +408,7 @@ pipeline {
             }
             steps {
                 echo 'Schalte Umgebung live...'
+                unstash 'bluegreen-state'
                 withCredentials([
                     file(credentialsId: 'FRONTEND_SSH_KEY', variable: 'KEY_PATH'),
                     string(credentialsId: 'GREEN_EC2_IP', variable: 'FRONTEND_IP')
