@@ -125,6 +125,9 @@ test-backend:
 
 build-backend:
   extends: .default-runner
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   stage: build
   image: docker:latest
   services:
@@ -144,6 +147,9 @@ build-backend:
 
 deliver-backend:
   extends: .default-runner
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   stage: deliver
   image: docker:latest
   services:
