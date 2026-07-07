@@ -35,8 +35,8 @@ test("corrupted stored ciphertext returns 403", async () => {
 
     // attempt to decrypt corrupted data via API
     const res = await request(app.server)
-        .get(`/notes/${id}`)
-        .query({ passphrase: "pw" });
+        .post(`/notes/${id}/decrypt`)
+        .send({ passphrase: "pw" });
 
     expect(res.statusCode).toBe(403); // decryption must fail due to authentication check
     expect(res.body.error).toBe("Invalid key or corrupted data"); // expected security error response

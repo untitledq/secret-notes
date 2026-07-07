@@ -16,6 +16,7 @@ stages:
   - deliver
   - deploy
   - performance
+  - switch
   - notify
 
 # =====================================================
@@ -117,12 +118,12 @@ build-backend:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   script:
     - echo "Build"
-    - docker build -t secret-notes-backend:$CI_COMMIT_SHA ./backend
+    - docker build -t secret-notes-backend:$CI_COMMIT_SHORT_SHA ./backend
     # Push to GitLab registry (artifact storage)
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker tag secret-notes-backend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
-    - docker tag secret-notes-backend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/backend:latest
-    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+    - docker tag secret-notes-backend:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
+    - docker tag secret-notes-backend:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE/backend:latest
+    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
     - docker push $CI_REGISTRY_IMAGE/backend:latest
 
 deliver-backend:
@@ -135,18 +136,20 @@ deliver-backend:
   script:
     # 1. Pull von der GitLab Registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker pull $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+    - docker pull $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
     
     # 2. Sauber re-taggen (Der Sonar-Müll ist hier jetzt komplett gelöscht!)
-    - docker tag $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA secret-notes-backend:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA secret-notes-backend:$CI_COMMIT_SHORT_SHA
     
     # 3. Login bei Docker Hub und Push (wurde wieder hinzugefügt, damit das Deployment ein Image hat!)
     - echo "$DOCKERHUB_PASSWORD_NEW" | docker login -u "$DOCKERHUB_USER_NEW" --password-stdin
-    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA
-    - docker tag secret-notes-backend:$CI_COMMIT_SHA $DOCKERHUB_USER_NEW/secret-notes-backend:latest
-    - docker push $DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA
+    - docker tag secret-notes-backend:$CI_COMMIT_SHORT_SHA $DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHORT_SHA
+    - docker tag secret-notes-backend:$CI_COMMIT_SHORT_SHA $DOCKERHUB_USER_NEW/secret-notes-backend:latest
+    - docker push $DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHORT_SHA
     - docker push $DOCKERHUB_USER_NEW/secret-notes-backend:latest
 
+# Blue/green: deploy to the PASSIVE color (blue=3001, green=3002);
+# the nginx proxy on :3000 serves the active one (see deploy/bluegreen/).
 deploy-backend-staging:
   stage: deploy
   image: alpine:3.20
@@ -155,9 +158,7 @@ deploy-backend-staging:
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   variables:
-    BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHA"
-    BACKEND_CONTAINER_NAME: "secret-notes-backend-green"
-    BACKEND_PORT: "3001"
+    BACKEND_DOCKER_IMAGE: "$DOCKERHUB_USER_NEW/secret-notes-backend:$CI_COMMIT_SHORT_SHA"
   before_script:
     - apk add --no-cache openssh-client
     - test -n "$BACKEND_STAGING_DATABASE_URL" || (echo "BACKEND_STAGING_DATABASE_URL is missing" && exit 1) 
@@ -165,6 +166,9 @@ deploy-backend-staging:
     - mkdir -p ~/.ssh
     - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
   script:
+    - ACTIVE=$(ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "cat /home/ubuntu/active_color 2>/dev/null || echo blue")
+    - if [ "$ACTIVE" = "blue" ]; then PASSIVE=green; PASSIVE_PORT=3002; else PASSIVE=blue; PASSIVE_PORT=3001; fi
+    - echo "Active is $ACTIVE - deploying to $PASSIVE (port $PASSIVE_PORT)"
     - |
       ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "
         set -e
@@ -176,104 +180,115 @@ deploy-backend-staging:
           $BACKEND_DOCKER_IMAGE \
           npx prisma migrate deploy
 
-        docker stop $BACKEND_CONTAINER_NAME || true
-        docker rm $BACKEND_CONTAINER_NAME || true
+        docker stop secret-notes-backend-$PASSIVE || true
+        docker rm secret-notes-backend-$PASSIVE || true
 
         docker run -d \
-          --name $BACKEND_CONTAINER_NAME \
+          --name secret-notes-backend-$PASSIVE \
           --restart unless-stopped \
-          -p $BACKEND_PORT:3000 \
+          -p $PASSIVE_PORT:3000 \
           -e NODE_ENV=production \
+          -e RATE_LIMIT_MAX=1000 \
           -e DATABASE_URL='$BACKEND_STAGING_DATABASE_URL' \
           $BACKEND_DOCKER_IMAGE
 
         sleep 5
-        curl -fsS http://localhost:$BACKEND_PORT/health
+        curl -fsS http://localhost:$PASSIVE_PORT/health
       "
+    - echo "PASSIVE_COLOR=$PASSIVE" >> deploy.env
+    - echo "PASSIVE_PORT=$PASSIVE_PORT" >> deploy.env
+  artifacts:
+    reports:
+      dotenv: deploy.env
   environment:
     name: backend-staging
-    url: "http://$BACKEND_STAGING_EC2_HOST:3001"
+    url: "http://$BACKEND_STAGING_EC2_HOST:3000"
 
 
 # =====================================================
 # FRONTEND
 # =====================================================
 
+lint-frontend:
+  stage: lint
+  image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  script:
+    - cd frontend
+    - npm ci
+    - npm run lint
 
-# lint-frontend:
-#   stage: lint
-#   image: node:20
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
-#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-#   script:
-#     - cd frontend
-#     # basic HTML validation using tidy (lightweight, no Node project needed)
-#     - apt-get update && apt-get install -y tidy
-#     # intentionally weak / nonblocking for now
-#     - tidy -q -e index.html || true
+snyk-frontend:
+  stage: snyk
+  image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  script:
+    - echo "Snyk test frontend"
+    - cd frontend
+    - npm ci
+    - npm install -g snyk
+    - snyk auth $SNYK_TOKEN
+    - snyk test
 
-# snyk-frontend:
-#   stage: snyk
-#   image: node:20
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
-#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-#   script:
-#     - echo "Snyk test frontend"
-#     - cd frontend
-#     - npm ci
-#     - npm install -g snyk
-#     - snyk auth $SNYK_TOKEN
-#     - snyk test
+sonar-frontend:
+  stage: sonar
+  image:
+    name: sonarsource/sonar-scanner-cli:12.1
+    entrypoint: [""]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"
+  cache:
+    paths:
+      - .sonar/cache
+  script:
+    - cd frontend
+    - |
+      sonar-scanner \
+        -Dsonar.projectKey=secret-notes-frontend \
+        -Dsonar.sources=. \
+        -Dsonar.exclusions=node_modules/**,coverage/** \
+        -Dsonar.host.url=$SONAR_HOST_URL \
+        -Dsonar.token=$SONAR_TOKEN \
+        -Dsonar.qualitygate.wait=true
 
-# test-frontend:
-#   stage: test
-#   image: node:20
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
-#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-#   script:
-#     - cd frontend
-#     - npm ci
-#     - npm run test:coverage
-#   artifacts:
-#     when: always
-#     paths:
-#       - frontend/coverage
-#     reports:
-#       coverage_report:
-#         coverage_format: cobertura
-#         path: frontend/coverage/cobertura-coverage.xml
+test-frontend:
+  stage: test
+  image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  script:
+    - cd frontend
+    - npm ci
+    - npm run test:coverage
+  artifacts:
+    when: always
+    paths:
+      - frontend/coverage
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: frontend/coverage/cobertura-coverage.xml
 
-# build-frontend:
-#   stage: build
-#   image: docker:latest
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
-#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-#   services:
-#     - docker:dind
-#   script:
-#     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-#     - docker build -f frontend/Dockerfile -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/frontend:latest .
-#     - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
-#     - docker push $CI_REGISTRY_IMAGE/frontend:latest
-
-
-# deliver-frontend:    # should be done in jenkins for frontend
-#   stage: deliver
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-#   script:
-#     -
-
-# deploy-frontend:    # should be done in jenkins for frontend
-#   stage: deploy
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-#   script:
-#     -
+# Build-Check
+build-frontend:
+  stage: build
+  image: docker:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  services:
+    - docker:dind
+  script:
+    - docker build -f frontend/Dockerfile -t secret-notes-frontend:$CI_COMMIT_SHORT_SHA .
 
 # =====================================================
 # PERFORMANCE TESTING (k6) - AWS staging backend
@@ -289,44 +304,55 @@ performance-backend-k6:
   rules:
     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
   variables:
-    K6_VUS: "1"
-    K6_DURATION: "1s"
+    K6_VUS: "3"
+    K6_DURATION: "30s"
     K6_P95_THRESHOLD: "1000"
     K6_ERROR_RATE_THRESHOLD: "0.01"
   script:
-    - K6_BASE_URL="http://$BACKEND_STAGING_EC2_HOST:3000" k6 run --summary-export performance/k6/k6-summary.json performance/k6/notes-performance.js
+    - K6_BASE_URL="http://$BACKEND_STAGING_EC2_HOST:$PASSIVE_PORT" k6 run --summary-export performance/k6/k6-summary.json performance/k6/notes-performance.js
   artifacts:
     when: always
     paths:
       - performance/k6/k6-summary.json
 
 # =====================================================
-# E2E TESTING (Playwright) - draft for deploy/production
+# E2E TESTING (Playwright) - Staging-Frontend
 # =====================================================
-#
-# Required GitLab CI/CD variables before enabling this job:
-# - FRONTEND_URL: staging frontend URL after deployment, e.g. https://staging.example.com
-#
-# Important for the current frontend:
-# frontend/app.js currently uses API_BASE = "http://localhost:3000".
-# Before running this against real staging, make the API URL configurable
-# or deploy/proxy the backend so the frontend can reach the staging API.
-# Before enabling this job, add Playwright to the project:
-# npm install --save-dev @playwright/test
-#
-# e2e-frontend:
-#   stage: performance
-#   image: mcr.microsoft.com/playwright:v1.54.1-jammy
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "deploy/production"'
-#   script:
-#     - npm ci
-#     - npx playwright test e2e/playwright
-#   artifacts:
-#     when: always
-#     paths:
-#       - playwright-report
-#       - test-results
+
+e2e-frontend:
+  stage: performance
+  image: mcr.microsoft.com/playwright:v1.61.1-jammy
+  needs:
+    - deploy-backend-staging
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  script:
+    - test -n "$FRONTEND_URL" || (echo "FRONTEND_URL is missing" && exit 1)
+    - npm ci
+    - npx playwright test e2e/playwright
+  artifacts:
+    when: always
+    paths:
+      - playwright-report
+      - test-results
+
+# Flips traffic to the passive color; runs only if deploy, k6 and e2e succeeded.
+switch-backend:
+  stage: switch
+  image: alpine:3.20
+  needs:
+    - deploy-backend-staging
+    - performance-backend-k6
+    - e2e-frontend
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "deploy/production"'
+  before_script:
+    - apk add --no-cache openssh-client
+    - chmod 400 "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -H "$BACKEND_STAGING_EC2_HOST" >> ~/.ssh/known_hosts
+  script:
+    - ssh -i "$BACKEND_STAGING_EC2_SSH_PRIVATE_KEY" "$BACKEND_STAGING_EC2_USER@$BACKEND_STAGING_EC2_HOST" "sudo /usr/local/bin/switch-backend.sh $PASSIVE_COLOR"
 
 notify-failure-slack:
   stage: notify

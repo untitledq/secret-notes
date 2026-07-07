@@ -177,7 +177,7 @@ describe("Secret Notes frontend", () => {
     expect(document.getElementById("output").textContent).toBe("Network error while saving");
   });
 
-  test("loads a note with an encoded passphrase", async () => {
+  test("loads a note by sending the passphrase in the request body", async () => {
     document.getElementById("loadNoteId").value = "9";
     document.getElementById("loadKey").value = "key with spaces & symbols";
     window.fetch.mockResolvedValueOnce(jsonResponse({ id: 9, content: "opened note" }));
@@ -185,7 +185,12 @@ describe("Secret Notes frontend", () => {
     await window.loadNote();
 
     expect(window.fetch).toHaveBeenCalledWith(
-      `${window.APP_CONFIG.API_BASE_URL}/notes/9?passphrase=key%20with%20spaces%20%26%20symbols`
+      `${window.APP_CONFIG.API_BASE_URL}/notes/9/decrypt`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passphrase: "key with spaces & symbols" })
+      }
     );
     expect(document.getElementById("loadNoteContent").value).toBe("opened note");
     expect(document.getElementById("output").textContent).toBe("Note loaded successfully");
