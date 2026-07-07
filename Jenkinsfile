@@ -1,6 +1,10 @@
 pipeline {
     agent any 
 
+    options {
+        disableConcurrentBuilds()
+    }
+
     stages {
         stage('Säubern & Vorbereiten') {
             steps {
@@ -9,7 +13,7 @@ pipeline {
             }
         }
 
-        // 1. LINT: Holt sich den Node-Container
+        // 1. LINT
         stage('Lint') {
             when {
                 beforeAgent true
@@ -125,8 +129,13 @@ pipeline {
                         -Dsonar.projectKey=secret-notes-frontend \
                         -Dsonar.projectName="Secret Notes Frontend" \
                         -Dsonar.sources=. \
+                        -Dsonar.exclusions=node_modules/**,coverage/**,**/*.test.js,**/*.config.js \
+                        -Dsonar.tests=. \
+                        -Dsonar.test.inclusions=**/*.test.js \
+                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
                         -Dsonar.host.url=${SONAR_HOST_URL} \
                         -Dsonar.token=${SONAR_TOKEN} \
+                        -Dsonar.qualitygate.wait=true \
                         -Dsonar.userHome=\$(pwd)/.sonar
                     '''
                 }
@@ -148,16 +157,13 @@ pipeline {
             steps {
                 echo 'Baue das Docker-Image lokal auf dem Server...'
                 dir('frontend') {
-                    // Wir holen den Usernamen aus den Jenkins-Secrets
                     withCredentials([string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER')]) {
                         sh '''
-                            # Wandelt den Usernamen direkt im RAM in Kleinbuchstaben um – ohne Rohdaten im Code!
                             MY_USER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
-                            COMMIT_SHA=$(git rev-parse --short HEAD)
+                            COMMIT_SHA=$(git rev-parse --short=8 HEAD)
                             
                             export DOCKER_BUILDKIT=0
                             
-                            # Wir bauen das Image lokal direkt mit dem richtigen Namen
                             docker build -f Dockerfile -t local-frontend:$COMMIT_SHA -t local-frontend:latest ..
                         '''
                     }
@@ -165,7 +171,8 @@ pipeline {
             }
         }
 
-        // 6. DELIVER STAGE
+
+        // 6. DELIVER
         stage('Deliver to Docker Hub') {
             when {
                 beforeAgent true
@@ -178,30 +185,25 @@ pipeline {
             steps {
                 echo 'Logge bei Docker Hub via Token ein und pushe die Images...'
                 dir('frontend') {
-                    // Hier nutzen wir beide Secrets (User + Token)
                     withCredentials([
                         string(credentialsId: 'DOCKERHUB_USER', variable: 'RAW_USER'),
                         string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN')
                     ]) {
                         sh '''
-                            # Auch hier: Umwandlung direkt im Speicher
                             MY_USER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
-                            COMMIT_SHA=$(git rev-parse --short HEAD)
+                            COMMIT_SHA=$(git rev-parse --short=8 HEAD)
                             
                             export DOCKER_BUILDKIT=0
                             
-                            # 1. Bei Docker Hub mit dem Token einloggen
                             echo "$RAW_TOKEN" | docker login -u "$RAW_USER" --password-stdin
                             
-                            # 2. Die lokalen Images mit dem Docker Hub Pfad verknüpfen
                             docker tag local-frontend:latest ${MY_USER}/secret-notes-frontend:latest
                             docker tag local-frontend:$COMMIT_SHA ${MY_USER}/secret-notes-frontend:$COMMIT_SHA
                             
-                            # 3. Beide Tags zu Docker Hub pushen
                             docker push ${MY_USER}/secret-notes-frontend:latest
                             docker push ${MY_USER}/secret-notes-frontend:$COMMIT_SHA
                             
-                            # 4. Lokale Images löschen, um AWS-Speicher zu sparen
+                            # remove local images to save disk space on the EC2
                             docker rmi local-frontend:$COMMIT_SHA local-frontend:latest
                             docker rmi ${MY_USER}/secret-notes-frontend:$COMMIT_SHA
                             docker rmi ${MY_USER}/secret-notes-frontend:latest
@@ -214,7 +216,7 @@ pipeline {
             }
         }
 
-        // 7. CHECK ARTEFACTS (Sicherstellen, dass das neue Frontend-Image existiert)
+        // 7. CHECK ARTEFACTS
         stage('Check Artefacts') {
             when {
                 beforeAgent true
@@ -232,21 +234,32 @@ pipeline {
                         string(credentialsId: 'DOCKERHUB_TOKEN', variable: 'RAW_TOKEN')
                     ]) {
                         script {
-                            def commitSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                            def commitSha = sh(script: 'git rev-parse --short=8 HEAD', returnStdout: true).trim()
                             def myUser = sh(script: "echo \$RAW_USER | tr '[:upper:]' '[:lower:]'", returnStdout: true).trim()
-                            
-                            echo "Suche auf Docker Hub nach: ${myUser}/secret-notes-frontend:${commitSha}"
-                            
-                            // Wir nutzen "-u USER:TOKEN", damit Docker Hub uns die echte Antwort gibt
-                            def statusCode = sh(
-                                script: "curl -s -u \"\$RAW_USER:\$RAW_TOKEN\" -o /dev/null -w '%{http_code}' https://hub.docker.com/v2/repositories/${myUser}/secret-notes-frontend/tags/${commitSha}/",
-                                returnStdout: true
-                            ).trim()
-                            
-                            if (statusCode == "200") {
-                                echo "Erfolg: Das Image wurde auf Docker Hub gefunden und steht für das AWS-Deployment bereit!"
-                            } else {
-                                error "ABBRUCH: Version ${commitSha} wurde von der API blockiert oder nicht gefunden (Status: ${statusCode})."
+
+                            ['secret-notes-frontend', 'secret-notes-backend'].each { repo ->
+                                echo "Suche auf Docker Hub nach: ${myUser}/${repo}:${commitSha}"
+
+                                def found = false
+                                for (int i = 0; i < 6; i++) {
+                                    def statusCode = sh(
+                                        script: "curl -s -u \"\$RAW_USER:\$RAW_TOKEN\" -o /dev/null -w '%{http_code}' https://hub.docker.com/v2/repositories/${myUser}/${repo}/tags/${commitSha}/",
+                                        returnStdout: true
+                                    ).trim()
+
+                                    if (statusCode == "200") {
+                                        found = true
+                                        break
+                                    }
+                                    echo "Noch nicht da (Status ${statusCode}), warte 30s..."
+                                    sleep 30
+                                }
+
+                                if (found) {
+                                    echo "Erfolg: ${repo}:${commitSha} wurde auf Docker Hub gefunden!"
+                                } else {
+                                    error "ABBRUCH: ${repo}:${commitSha} wurde auf Docker Hub nicht gefunden."
+                                }
                             }
                         }
                     }
@@ -275,57 +288,60 @@ pipeline {
                     string(credentialsId: 'GREEN_EC2_IP_BACKEND', variable: 'BACKEND_IP')
                 ]) {
                     sh '''
-                        COMMIT_SHA=$(git rev-parse --short HEAD)
+                        COMMIT_SHA=$(git rev-parse --short=8 HEAD)
                         MY_USER=$(echo "$RAW_USER" | tr '[:upper:]' '[:lower:]')
-                        PASSIVE_FE_PORT=8081
-                        
+
                         chmod 400 "$KEY_PATH"
-                        
-                        
-                        echo "window.APP_CONFIG = { \\"API_BASE_URL\\": \\"http://${BACKEND_IP}:3001\\" };" > local-config.js
-                        
+
+                        # blue/green: read the active color, deploy into the passive one
+                        ACTIVE=$(ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "cat /home/ubuntu/active_color 2>/dev/null || echo blue")
+                        if [ "$ACTIVE" = "blue" ]; then PASSIVE=green; PASSIVE_FE_PORT=8082; else PASSIVE=blue; PASSIVE_FE_PORT=8081; fi
+                        echo "Active is $ACTIVE - deploying to $PASSIVE (port $PASSIVE_FE_PORT)"
+
+                        # remember color/port for the Playwright and switch stages
+                        echo "$PASSIVE" > .passive_color
+                        echo "$PASSIVE_FE_PORT" > .passive_fe_port
+
+                        # config.js points at the backend PROXY (:3000), so the
+                        # frontend survives backend switches without a redeploy
+                        echo "window.APP_CONFIG = { \\"API_BASE_URL\\": \\"http://${BACKEND_IP}:3000\\" };" > local-config.js
+
                         echo "Verbinde via SSH-Key-File mit passiver Umgebung unter IP: $PASSIVE_IP..."
-                        
+
                         scp -i "$KEY_PATH" -o StrictHostKeyChecking=no local-config.js ubuntu@${PASSIVE_IP}:/home/ubuntu/config.js
-                        
+
                         ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${PASSIVE_IP} "
                             set -e
 
-                            # 1. Login bei Docker Hub
                             echo '$RAW_TOKEN' | docker login -u '$RAW_USER' --password-stdin
-                            
-                            # 2. Alten Container stoppen und löschen
-                            docker stop frontend-passive || true
-                            docker rm frontend-passive || true
-                            
-                            # 3. Neues Image von Docker Hub ziehen
+
+                            docker stop frontend-${PASSIVE} || true
+                            docker rm frontend-${PASSIVE} || true
+
                             docker pull ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
-                            
-                            # 4. Container auf Port 8081 starten
+
                             docker run -d \\
-                              --name frontend-passive \\
+                              --name frontend-${PASSIVE} \\
                               -p ${PASSIVE_FE_PORT}:80 \\
                               --restart unless-stopped \\
                               ${MY_USER}/secret-notes-frontend:${COMMIT_SHA}
-                              
+
                             echo 'Warte kurz auf den Container-Start...'
                             sleep 2
-                            
-                            # 5. Die auf der EC2 bereitliegende Datei in den Container kopieren
-                            docker cp /home/ubuntu/config.js frontend-passive:/usr/share/nginx/html/config.js
-                            
-                            # 6. Temporäre Datei auf der EC2 löschen
+
+                            docker cp /home/ubuntu/config.js frontend-${PASSIVE}:/usr/share/nginx/html/config.js
+
                             rm /home/ubuntu/config.js
-                            
-                            # 7. Den Container neu starten, damit er die neue config.js sofort erzwingt
-                            docker restart frontend-passive
-                            
-                            # 8. Logout
+
+                            docker restart frontend-${PASSIVE}
+
                             docker logout
                         "
-                        echo "Passive Umgebung läuft jetzt mit dem neuen Frontend (Version $COMMIT_SHA) auf Port $PASSIVE_FE_PORT und funkt an Backend $BACKEND_IP:3001!"
+                        echo "Passive environment ($PASSIVE) now runs frontend $COMMIT_SHA on port $PASSIVE_FE_PORT, backend proxy: $BACKEND_IP:3000"
                     '''
                 }
+                // later stages may run in a different workspace
+                stash name: 'bluegreen-state', includes: '.passive_color,.passive_fe_port'
             }
         }
 
@@ -340,6 +356,15 @@ pipeline {
             }
             steps {
                 echo 'Führe k6 Performance-Tests aus...'
+                withCredentials([string(credentialsId: 'GREEN_EC2_IP_BACKEND', variable: 'BACKEND_IP')]) {
+                    sh '''
+                        docker run --rm -v "$PWD/performance":/perf \
+                          -e K6_BASE_URL="http://${BACKEND_IP}:3000" \
+                          -e K6_VUS=3 \
+                          -e K6_DURATION=30s \
+                          grafana/k6:0.54.0 run /perf/k6/notes-performance.js
+                    '''
+                }
             }
         }
 
@@ -354,6 +379,21 @@ pipeline {
             }
             steps {
                 echo 'Führe Playwright E2E-Tests aus...'
+                unstash 'bluegreen-state'
+                withCredentials([string(credentialsId: 'GREEN_EC2_IP', variable: 'FRONTEND_IP')]) {
+                    sh '''
+                        PASSIVE_FE_PORT=$(cat .passive_fe_port)
+
+                        # -u + HOME=/tmp: files stay owned by the Jenkins user, otherwise cleanWs() breaks
+                        docker run --rm -v "$PWD":/work -w /work \
+                          -u "$(id -u):$(id -g)" \
+                          -e HOME=/tmp \
+                          -e FRONTEND_URL="http://${FRONTEND_IP}:${PASSIVE_FE_PORT}" \
+                          mcr.microsoft.com/playwright:v1.61.1-jammy \
+                          sh -c "npm ci --no-audit && npx playwright test e2e/playwright"
+                    '''
+                }
+                archiveArtifacts artifacts: 'playwright-report/**', allowEmptyArchive: true
             }
         }
 
@@ -368,6 +408,32 @@ pipeline {
             }
             steps {
                 echo 'Schalte Umgebung live...'
+                unstash 'bluegreen-state'
+                withCredentials([
+                    file(credentialsId: 'FRONTEND_SSH_KEY', variable: 'KEY_PATH'),
+                    string(credentialsId: 'GREEN_EC2_IP', variable: 'FRONTEND_IP')
+                ]) {
+                    sh '''
+                        chmod 400 "$KEY_PATH"
+                        PASSIVE=$(cat .passive_color)
+
+                        ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@${FRONTEND_IP} "sudo /usr/local/bin/switch-frontend.sh ${PASSIVE}"
+
+                        echo "Frontend traffic now on ${PASSIVE}"
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            withCredentials([string(credentialsId: 'SLACK_WEBHOOK_URL', variable: 'WEBHOOK')]) {
+                sh '''
+                    curl -X POST -H 'Content-type: application/json' \
+                      --data "{\\"text\\":\\"Jenkins-Pipeline fehlgeschlagen: ${JOB_NAME} #${BUILD_NUMBER} (${GIT_BRANCH})\\n${BUILD_URL}\\"}" \
+                      "$WEBHOOK"
+                '''
             }
         }
     }

@@ -1,10 +1,10 @@
 const TEST_GROUP_UI_FLAG = "test-group-ui-flag";
 const CREATE_VAULT_SELECTOR = "#createNoteVault";
 const LOAD_VAULT_SELECTOR = "#loadNoteVault";
-const API_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:3001";
+const API_URL = globalThis.APP_CONFIG?.API_BASE_URL || "http://localhost:3000";
 
 // --- health check on startup ---
-window.addEventListener("DOMContentLoaded", async () => {
+globalThis.addEventListener("DOMContentLoaded", async () => {
     setupTabs();
     startBackgroundIconAnimation();
     applyTestGroupUIExperiment();
@@ -26,11 +26,11 @@ window.addEventListener("DOMContentLoaded", async () => {
 async function saveNote() {
     const text = document.getElementById("createNote").value;
     const passphrase = document.getElementById("createKey").value;
-    const variant = window.posthog
+    const variant = globalThis.posthog
         ? posthog.getFeatureFlag(TEST_GROUP_UI_FLAG) || "group_a"
         : "group_a";
 
-    if (window.posthog) {
+    if (globalThis.posthog) {
         posthog.capture("note_save_started", { variant });
     }
     try {
@@ -40,7 +40,7 @@ async function saveNote() {
         };
         
         // Forward PostHog identity context so backend events belong to the same user/session
-        if (window.posthog) {
+        if (globalThis.posthog) {
             headers["X-PostHog-Distinct-Id"] = posthog.get_distinct_id();
             headers["X-PostHog-Session-Id"] = posthog.get_session_id();
         }
@@ -74,9 +74,11 @@ async function loadNote() {
     resetVaultAnimation(LOAD_VAULT_SELECTOR, true);
 
     try {
-        const res = await fetch(
-            `${API_URL}/notes/${id}?passphrase=${encodeURIComponent(passphrase)}`
-        );
+        const res = await fetch(`${API_URL}/notes/${id}/decrypt`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ passphrase })
+        });
 
         const data = await safeJson(res);
 
@@ -116,7 +118,7 @@ function startBackgroundIconAnimation() {
 
         fillIconRow(row, iconPath);
 
-        if (!window.gsap) {
+        if (!globalThis.gsap) {
             row.style.animation = `iconEscalatorFallback ${duration}s linear infinite`;
             return;
         }
@@ -176,7 +178,7 @@ function refreshBackgroundIcons() {
 
 function fillIconRow(row, iconPath) {
     const iconSpacing = 82;
-    const iconCount = Math.ceil(window.innerWidth / iconSpacing) + 4;
+    const iconCount = Math.ceil(globalThis.innerWidth / iconSpacing) + 4;
     const loop = document.createElement("div");
 
     loop.className = "icon-loop";
@@ -230,10 +232,10 @@ function setActiveTab(activeTab) {
     createPanel.classList.toggle("is-hidden", !isCreate);
     loadPanel.classList.toggle("is-hidden", isCreate);
 
-    if (!isCreate) {
-        resetVaultAnimation(LOAD_VAULT_SELECTOR, true);
-    } else {
+    if (isCreate) {
         resetEncryptVaultAnimation();
+    } else {
+        resetVaultAnimation(LOAD_VAULT_SELECTOR, true);
     }
 }
 
@@ -253,7 +255,7 @@ function resetVaultAnimation(vaultSelector, showOverlay) {
         overlay.style.display = showOverlay ? "" : "none";
     }
 
-    if (!window.gsap) {
+    if (!globalThis.gsap) {
         return;
     }
 
@@ -297,7 +299,7 @@ function resetEncryptVaultAnimation() {
 }
 
 function finishEncryptAnimation() {
-    window.setTimeout(() => {
+    globalThis.setTimeout(() => {
         const overlay = document.querySelector(vaultPart(CREATE_VAULT_SELECTOR, ".vault-overlay"));
         const clearCreateFields = () => {
             document.getElementById("createNote").value = "";
@@ -305,7 +307,7 @@ function finishEncryptAnimation() {
             resetEncryptVaultAnimation();
         };
 
-        if (!window.gsap || !overlay) {
+        if (!globalThis.gsap || !overlay) {
             clearCreateFields();
             return;
         }
@@ -332,7 +334,7 @@ function playVaultOpenAnimation() {
         vault.classList.remove("is-locked");
     }
 
-    if (!window.gsap) {
+    if (!globalThis.gsap) {
         const overlay = document.querySelector(vaultPart(LOAD_VAULT_SELECTOR, ".vault-overlay"));
 
         if (overlay) {
@@ -384,7 +386,7 @@ function playVaultErrorAnimation() {
         .querySelector(".container")
         ?.classList.contains("experiment-container-brown");
 
-    if (!window.gsap) {
+    if (!globalThis.gsap) {
         return;
     }
 
@@ -476,7 +478,7 @@ function playEncryptCloseAnimation() {
         overlay.style.display = "block";
     }
 
-    if (!window.gsap) {
+    if (!globalThis.gsap) {
         return;
     }
 
@@ -593,7 +595,7 @@ async function safeJson(res) {
 }
 
 function applyTestGroupUIExperiment() {
-    if (!window.posthog) {
+    if (!globalThis.posthog) {
         return;
     }
 
@@ -617,12 +619,13 @@ function applyTestGroupUIExperiment() {
     });
 }
 
-if (typeof window !== "undefined") {
-    window.saveNote = saveNote;
-    window.loadNote = loadNote;
-    window.SecretNotes = {
+if (globalThis.window !== undefined) {
+    globalThis.saveNote = saveNote;
+    globalThis.loadNote = loadNote;
+    globalThis.SecretNotes = {
         applyTestGroupUIExperiment,
         fillIconRow,
+        finishEncryptAnimation,
         refreshBackgroundIcons,
         resetEncryptVaultAnimation,
         resetVaultAnimation,

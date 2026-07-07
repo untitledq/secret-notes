@@ -61,3 +61,6 @@ jest-cache/
 # Optional: Prisma (if used later)
 # --------------------
 prisma/migrations/
+# Playwright output
+test-results/
+playwright-report/

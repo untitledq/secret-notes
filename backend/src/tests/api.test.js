@@ -28,8 +28,8 @@ test("create and retrieve note", async () => {
     const id = resCreate.body.id; // stored note identifier
 
     const resGet = await request(app.server)
-        .get(`/notes/${id}`)
-        .query({ passphrase: "pw" });
+        .post(`/notes/${id}/decrypt`)
+        .send({ passphrase: "pw" });
 
     expect(resGet.statusCode).toBe(200); // successful retrieval and decryption expected
     expect(resGet.body.content).toBe("hello"); // decrypted content must match original input
