@@ -10,8 +10,8 @@
 stages:
   - lint
   - snyk
-  - sonar
   - test
+  - sonar
   - build
   - deliver
   - deploy
@@ -62,6 +62,8 @@ sonar-backend:
   cache:
     paths:
       - .sonar/cache
+  needs:
+    - test-backend
   script:
     - echo "SonarQube test"
     - cd backend
@@ -70,6 +72,10 @@ sonar-backend:
       sonar-scanner \
         -Dsonar.projectKey=secret-notes-backend \
         -Dsonar.sources=. \
+        -Dsonar.exclusions=node_modules/**,coverage/**,**/*.test.js \
+        -Dsonar.tests=. \
+        -Dsonar.test.inclusions=**/*.test.js \
+        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
         -Dsonar.host.url=$SONAR_HOST_URL \
         -Dsonar.token=$SONAR_TOKEN \
         -Dsonar.qualitygate.wait=true
@@ -248,13 +254,18 @@ sonar-frontend:
   cache:
     paths:
       - .sonar/cache
+  needs:
+    - test-frontend
   script:
     - cd frontend
     - |
       sonar-scanner \
         -Dsonar.projectKey=secret-notes-frontend \
         -Dsonar.sources=. \
-        -Dsonar.exclusions=node_modules/**,coverage/** \
+        -Dsonar.exclusions=node_modules/**,coverage/**,**/*.test.js,**/*.config.js \
+        -Dsonar.tests=. \
+        -Dsonar.test.inclusions=**/*.test.js \
+        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
         -Dsonar.host.url=$SONAR_HOST_URL \
         -Dsonar.token=$SONAR_TOKEN \
         -Dsonar.qualitygate.wait=true
