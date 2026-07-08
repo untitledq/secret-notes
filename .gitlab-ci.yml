@@ -175,6 +175,7 @@ deliver-backend:
 # the nginx proxy on :3000 serves the active one (see deploy/bluegreen/).
 deploy-backend-staging:
   extends: .default-runner
+  resource_group: backend-staging
   stage: deploy
   image: alpine:3.20
   needs:
@@ -285,6 +286,7 @@ e2e-frontend:
 # Flips traffic to the passive color; runs only if deploy, k6 and e2e succeeded.
 switch-backend:
   extends: .default-runner
+  resource_group: backend-staging
   stage: switch
   image: alpine:3.20
   needs:

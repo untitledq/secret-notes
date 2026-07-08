@@ -37,4 +37,23 @@ test.describe("Secret Notes E2E", () => {
 
     await expect(page.locator("#output")).toContainText("Invalid key or corrupted data");
   });
+
+  test("feature toggle renders the group B experiment UI", async ({ page }) => {
+    await page.goto(FRONTEND_URL);
+    await expect(page).toHaveTitle(/Secret Notes/);
+
+    // Force the PostHog feature flag to the group_b variant and re-apply the experiment,
+    // verifying the toggle-controlled UI path works end to end (spec: "Test Green" incl. feature toggles).
+    await page.evaluate(() => {
+      globalThis.posthog = {
+        onFeatureFlags: (callback) => callback(),
+        getFeatureFlag: () => "group_b"
+      };
+      globalThis.SecretNotes.applyTestGroupUIExperiment();
+    });
+
+    await expect(page.locator("#saveButton")).toHaveClass(/button-green/);
+    await expect(page.locator("body")).toHaveClass(/experiment-bg-beige/);
+    await expect(page.locator(".container")).toHaveClass(/experiment-container-brown/);
+  });
 });
