@@ -276,7 +276,8 @@ e2e-frontend:
   script:
     - test -n "$FRONTEND_URL" || (echo "FRONTEND_URL is missing" && exit 1)
     - npm ci
-    - npx playwright test e2e/playwright
+    # UI talks to the passive backend color, so the switch gate really tests the new version
+    - E2E_BACKEND_URL="http://$BACKEND_STAGING_EC2_HOST:$PASSIVE_PORT" npx playwright test e2e/playwright
   artifacts:
     when: always
     paths:
