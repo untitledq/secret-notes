@@ -2,7 +2,23 @@ import { expect, test } from "@playwright/test";
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:8080";
 
+// When set (CI passes the passive backend URL), config.js is intercepted so the
+// UI talks to the freshly deployed backend color instead of the live one.
+// This makes the e2e run a real "test green" for the backend before the switch.
+const BACKEND_OVERRIDE = process.env.E2E_BACKEND_URL;
+
 test.describe("Secret Notes E2E", () => {
+  test.beforeEach(async ({ page }) => {
+    if (BACKEND_OVERRIDE) {
+      await page.route("**/config.js", (route) =>
+        route.fulfill({
+          contentType: "application/javascript",
+          body: `globalThis.APP_CONFIG = { "API_BASE_URL": "${BACKEND_OVERRIDE}" };`
+        })
+      );
+    }
+  });
+
   test("user can create, read, and reject a secret note", async ({ page }) => {
     const noteText = `Playwright secret note ${Date.now()}`;
     const passphrase = "playwright-correct-passphrase";
