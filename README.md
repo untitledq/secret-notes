@@ -6,6 +6,10 @@ The application allows users to store encrypted notes and retrieve them using a 
 
 The application uses a JavaScript frontend, a Node.js/Fastify backend, and PostgreSQL with Prisma. Notes are encrypted using AES-256-GCM.
 
+![Secret Notes application demo](docs/secret-notes-demo.gif)
+
+![Secret Notes application demo – second recording](docs/secret-notes-demo-2.gif)
+
 ## CI/CD Pipeline
 
 The project combines two pipelines:
